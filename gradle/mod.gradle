@@ -1,0 +1,361 @@
+apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: 'com.matthewprenger.cursegradle'
+apply plugin: 'net.minecraftforge.gradle'
+apply plugin: 'jacoco'
+apply plugin: 'maven-publish'
+apply plugin: 'idea'
+apply plugin: 'eclipse'
+apply plugin: 'maven'
+
+repositories {
+    jcenter()
+    mavenCentral()
+    maven {
+        name 'LDTTeam - Modding'
+        url 'https://ldtteam.jfrog.io/ldtteam/modding/'
+    }
+}
+
+group = project.modGroup
+version = project.exactMinecraftVersion + "-" + (System.getenv().containsKey("Version") ? System.getenv("Version") : project.modVersion)
+archivesBaseName = project.modId
+
+project.logger.lifecycle("Starting Gradle build for: " + project.modId + " with version: " + project.version)
+
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'
+
+sourceSets {
+    api {
+        java {
+            srcDir 'src/api/java'
+        }
+        resources {
+            srcDir 'src/api/resources'
+        }
+        compileClasspath += configurations.getByName("minecraft")
+    }
+    main {
+        java {
+            srcDir 'src/main/java'
+        }
+        resources {
+            include '**/**'
+            srcDirs += "src/datagen/generated/${project.modId}"
+            exclude '.cache'
+        }
+        compileClasspath += sourceSets.api.output
+        runtimeClasspath += sourceSets.api.output
+    }
+    test {
+        java {
+            srcDir 'src/test/java'
+        }
+        resources {
+            srcDir 'src/test/resources'
+        }
+        compileClasspath += sourceSets.api.output
+        runtimeClasspath += sourceSets.api.output
+    }
+}
+
+configurations {
+    contained {
+        transitive = false
+    }
+}
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'
+
+minecraft {
+    mappings channel: project.mcpChannel, version: project.mcpVersion
+    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+
+    runs {
+        client {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', ''
+            property 'forge.logging.console.level', 'info'
+            mods { n ->
+                def mod = n.create(project.modId);
+                mod.sources(sourceSets.main, sourceSets.api)
+            }
+        }
+
+        server {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', ''
+            property 'forge.logging.console.level', 'info'
+            mods { n ->
+                def mod = n.create(project.modId);
+                mod.sources(sourceSets.main, sourceSets.api)
+            }
+        }
+
+        data {
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', ''
+            property 'forge.logging.console.level', 'info'
+            args '--all', '--output', file("src/datagen/generated/${project.modId}"),
+                    '--mod', "${project.modId}".toString(),
+                    '--existing', sourceSets.main.resources.srcDirs[0]
+            mods { n ->
+                def mod = n.create(project.modId);
+                mod.sources(sourceSets.main, sourceSets.api)
+            }
+        }
+    }
+}
+
+dependencies {
+    minecraft "net.minecraftforge:forge:${project.exactMinecraftVersion}-${project.forgeVersion}"
+
+    testCompile 'junit:junit:4.11'
+    testCompile "org.mockito:mockito-core:1.+"
+    testCompile group: 'org.powermock', name: 'powermock-module-junit4', version: '1.6.5'
+    testCompile group: 'org.powermock', name: 'powermock-api-mockito', version: '1.6.5'
+    testCompile group: 'org.powermock', name: 'powermock-module-junit4-rule-agent', version: '1.6.5'
+    testCompile 'org.assertj:assertj-core:3.9.0'
+    testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: '1.3'
+
+    apiCompile 'com.intellij:annotations:+@jar'
+    compile 'com.intellij:annotations:+@jar'
+    testCompile 'com.intellij:annotations:+@jar'
+}
+
+jar {
+    from sourceSets.api.output
+    from sourceSets.main.output
+
+    classifier ''
+
+    manifest {
+        attributes([
+                'Maven-Artifact': "${project.group}:${project.archivesBaseName}:${project.version}",
+                "Specification-Title": project.modId,
+                "Specification-Vendor": "ldtteam",
+                "Specification-Version": "1", // We are version 1 of ourselves
+                "Implementation-Title": project.name,
+                "Implementation-Version": "${project.version}",
+                "Implementation-Vendor" :"ldtteam",
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+        ])
+    }
+}
+
+task apiJar(type: Jar) {
+    from sourceSets.api.output
+    classifier 'api'
+}
+
+javadoc {
+    source += sourceSets.api.allSource
+}
+
+task packageJavadoc(type: Jar) {
+    from javadoc
+    classifier = 'javadoc'
+}
+
+task sourceJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allJava
+    from sourceSets.api.allJava
+}
+
+shadowJar {
+    from sourceSets.main.output
+    from sourceSets.api.output
+
+    configurations = [project.configurations.contained]
+
+    if (!project.shadowRenamedNamespaces.trim().isEmpty()) {
+        project.shadowRenamedNamespaces.split(',').each { n ->
+            if (n.contains(':')) {
+                def namespaceSpecs = n.split(':');
+                relocate n[0], n[1]
+            }
+        }
+    }
+
+    classifier = 'universal'
+}
+
+reobf {
+    jar {
+    }
+    shadowJar {
+    }
+}
+
+artifacts {
+    shadowJar
+    jar
+    packageJavadoc
+    sourceJar
+    apiJar
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from project.components.java
+
+            artifact shadowJar
+            artifact packageJavadoc
+            artifact sourceJar
+            artifact apiJar
+
+            pom {
+                url = project.githubUrl
+                licenses {
+                    license {
+                        name = 'GNU GENERAL PUBLIC LICENSE Version 3'
+                        url = 'https://www.gnu.org/licenses/gpl-3.0.en.html'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'OrionDevelopment'
+                        name = 'Marc Hermans'
+                        email = 'marc.hermans@ldtteam.com'
+                    }
+                    developer {
+                        id = 'Raycoms'
+                        name= 'Ray Neiheiser'
+                        email = 'ray.neiheiser@ldtteam.com'
+                    }
+                }
+                contributors {
+                    contributor {
+                        id = 'ldtteam'
+                        name = 'Let\'s Develop Together - Team'
+                        email = 'info@ldtteam.com'
+                    }
+                }
+                scm {
+                    connection = project.gitUrl
+                    developerConnection = project.gitConnectUrl
+                    url = project.projectUrl
+                }
+            }
+
+            //Replace all deobf dependencies with normal jar references.
+            pom.withXml { xmlProvider ->
+                NodeList dependencies = asNode().dependencies
+                NodeList allDeps = dependencies.'*';
+
+                // Remove forge deps
+                allDeps.findAll() { Node el ->
+                    el.artifactId.text() == 'forge' && el.groupId.text() == 'net.minecraftforge'
+                }.forEach() { Node el ->
+                    el.parent().remove(el)
+                }
+                //remove forgegradle's mapped suffix from versions & set as optional so anyone else doesn't inherit them
+                allDeps.findAll() { Node el ->
+                    el.version.text().contains('_mapped_')
+                }.each { Node el ->
+                    NodeList version = el.version
+                    version.each {
+                        it.setValue(it.text().substring(0, it.text().indexOf('_mapped_')))
+                    }
+                }
+            }
+        }
+    }
+
+    if (System.getenv().containsKey("LDTTeamJfrogUsername") && System.getenv().containsKey("LDTTeamJfrogPassword")) {
+        project.logger.log(LogLevel.WARN, "Uploading to JFrog enabled.")
+        repositories {
+            maven {
+                name 'LDTTeamJfrog'
+                credentials {
+                    username System.getenv().get("LDTTeamJfrogUsername")
+                    password System.getenv().get("LDTTeamJfrogPassword")
+                }
+                url 'https://ldtteam.jfrog.io/ldtteam/mods-maven'
+            }
+        }
+    }
+    else {
+        project.logger.log(LogLevel.WARN, "Uploading to JFrog disabeled.")
+    }
+}
+
+task setupDecompWorkspace {
+    doLast {
+        project.logger.log(LogLevel.DEBUG, "FG3 does not require to setup a decomp workspace")
+    }
+}
+
+task setupCIWorkspace {
+    doLast {
+        project.logger.log(LogLevel.DEBUG, "FG3 does not require to setup a CI workspace")
+    }
+}
+
+
+curseforge {
+    if (System.getenv().CURSEAPIKEY != null && System.getenv().CURSERELEASETYPE != null)
+    {
+        apiKey = System.getenv().CURSEAPIKEY
+
+        project {
+            id = project.curseId
+            addGameVersion project.exactMinecraftVersion
+            changelog = file('build/changelog.md')
+            changelogType = 'markdown'
+            releaseType = System.getenv().CURSERELEASETYPE
+
+            if (!project.additionalMinecraftVersions.trim().isEmpty()) {
+                project.additionalMinecraftVersions.split(",").each { v ->
+                    addGameVersion v
+                }
+            }
+
+            mainArtifact shadowJar
+            addArtifact jar
+            addArtifact apiJar
+        }
+    }
+    else
+    {
+        logger.lifecycle("Cannot run the CurseUpload sequence. No API-Key or release type has been provided.")
+    }
+}
+
+task("createChangelog") {
+    group = 'upload'
+
+    doLast {
+        def teamCityURL = "https://buildsystem.ldtteam.com/"
+        def file = new FileOutputStream("build/changelog.md")
+        def out = new BufferedOutputStream(file)
+        def changesXML = new XmlSlurper().parse(teamCityURL + "guestAuth/app/rest/changes?locator=build:(id:" + teamcity["teamcity.build.id"] + ")")
+
+        def changes = changesXML.change
+        println("createChangelog: Identified " + changes.size() + " changes to be written into the changelog.")
+
+        out << "# ${project.modId} Changelog \n"
+        out << "## Version: _" + version + "_ \n"
+
+        if (changes.size() > 0) {
+            for (int i = 0; i < changes.size(); i++) {
+                def changeDetailsURL = teamCityURL + "guestAuth/app/rest/changes/id:" + changes[i].@id.text()
+                def changeDetailsXml = new XmlSlurper().parse(changeDetailsURL)
+                def changeComment = changeDetailsXml.comment.text().trim()
+
+                out << "* " + changeComment + "\n"
+            }
+        } else {
+            out << "No Changes detected!"
+        }
+
+        out.close()
+    }
+}
+
+idea {
+    module {
+        inheritOutputDirs = true
+    }
+}
+
