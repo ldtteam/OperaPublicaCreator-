@@ -107,17 +107,17 @@ minecraft {
 dependencies {
     minecraft "net.minecraftforge:forge:${project.exactMinecraftVersion}-${project.forgeVersion}"
 
-    testCompile 'junit:junit:4.11'
-    testCompile "org.mockito:mockito-core:1.+"
-    testCompile group: 'org.powermock', name: 'powermock-module-junit4', version: '1.6.5'
-    testCompile group: 'org.powermock', name: 'powermock-api-mockito', version: '1.6.5'
-    testCompile group: 'org.powermock', name: 'powermock-module-junit4-rule-agent', version: '1.6.5'
-    testCompile 'org.assertj:assertj-core:3.9.0'
-    testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: '1.3'
+    testImplementation 'junit:junit:4.11'
+    testImplementation "org.mockito:mockito-core:1.+"
+    testImplementation group: 'org.powermock', name: 'powermock-module-junit4', version: '1.6.5'
+    testImplementation group: 'org.powermock', name: 'powermock-api-mockito', version: '1.6.5'
+    testImplementation group: 'org.powermock', name: 'powermock-module-junit4-rule-agent', version: '1.6.5'
+    testImplementation 'org.assertj:assertj-core:3.9.0'
+    testImplementation group: 'org.hamcrest', name: 'hamcrest-all', version: '1.3'
 
-    apiCompile 'com.intellij:annotations:+@jar'
-    compile 'com.intellij:annotations:+@jar'
-    testCompile 'com.intellij:annotations:+@jar'
+    apiImplementation 'com.intellij:annotations:+@jar'
+    implementation 'com.intellij:annotations:+@jar'
+    testImplementation 'com.intellij:annotations:+@jar'
 }
 
 jar {
