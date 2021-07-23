@@ -62,7 +62,9 @@ configurations {
         transitive = false
     }
 }
-sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'
+
+sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = project.javaVersion
+java.toolchain.languageVersion = JavaLanguageVersion.of(project.javaVersion)
 
 minecraft {
     mappings channel: project.mcpChannel, version: project.mcpVersion
