@@ -61,7 +61,7 @@ configurations {
     }
 }
 
-if (project.useJavaToolChains) {
+if (project.useJavaToolChains.ToString().ToLowerCase() == "true") {
     java.toolchain.languageVersion = JavaLanguageVersion.of(project.javaVersion)
 } else {
     sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = project.javaVersion
