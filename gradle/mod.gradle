@@ -21,8 +21,6 @@ archivesBaseName = project.modId
 
 project.logger.lifecycle("Starting Gradle build for: " + project.modId + " with version: " + project.version)
 
-sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = '1.8'
-
 sourceSets {
     api {
         java {
@@ -63,8 +61,11 @@ configurations {
     }
 }
 
-sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = project.javaVersion
-java.toolchain.languageVersion = JavaLanguageVersion.of(project.javaVersion)
+if (project.useJavaToolChains) {
+    java.toolchain.languageVersion = JavaLanguageVersion.of(project.javaVersion)
+} else {
+    sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = project.javaVersion
+}
 
 minecraft {
     mappings channel: project.mcpChannel, version: project.mcpVersion
