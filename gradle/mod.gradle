@@ -309,7 +309,7 @@ dependencies {
     minecraft "net.minecraftforge:forge:${project.exactMinecraftVersion}-${project.forgeVersion}"
 }
 
-def primaryJarClassifier = ''
+def primaryJarClassifier = 'universal'
 if (project.hasProperty("primaryJarClassifier")) {
     primaryJarClassifier = project.primaryJarClassifier;
 }
@@ -319,12 +319,22 @@ if (project.hasProperty("automaticModuleName")) {
     automaticModuleName = project.automaticModuleName;
 }
 
+def projectUsesShadowing = false
+if ((project.hasProperty("shadowJar") && project.shadowJar.toString().toLowerCase() == "true") ||
+        (project.hasProperty("shadowRenamedNamespaces") &&  !project.shadowRenamedNamespaces.trim().isEmpty())
+) {
+    projectUsesShadowing = true
+}
+
 jar {
     primaryJarSourceSets.forEach(sourceSetName -> {
         project.jar.from project.sourceSets[sourceSetName].output
     })
 
     classifier primaryJarClassifier
+    if (projectUsesShadowing) {
+        classifier 'slim'
+    }
 
     manifest {
         attributes([
@@ -361,22 +371,29 @@ additionalSourceSetJars.forEach(additionalSourceSet -> {
     String additionalSourceSetSourcesClassifier = additionalSourceSet.toLowerCase() + "-sources"
 
     org.gradle.api.tasks.javadoc.Javadoc javaDocTask = project.tasks.create(additionalSourceSetJavaDocTaskName, Javadoc.class);
-    javaDocTask.source = sourceSets[additionalSourceSet]
+    javaDocTask.setClasspath(sourceSets[additionalSourceSet].getCompileClasspath())
+    javaDocTask.group 'documentation'
+    javaDocTask.source = sourceSets[additionalSourceSet].allJava
 
     org.gradle.api.tasks.bundling.Jar javadocJarTask = project.tasks.create(additionalSourceSetPackageJavaDocTaskName, org.gradle.api.tasks.bundling.Jar.class)
     javadocJarTask.dependsOn javaDocTask
+    javadocJarTask.group 'packaging'
     javadocJarTask.from javaDocTask
     javadocJarTask.getArchiveClassifier().set(additionalSourceSetJavadocClassifier)
 
     org.gradle.api.tasks.bundling.Jar outputJarTask = project.tasks.create(additionalSourceSetJarTaskName, org.gradle.api.tasks.bundling.Jar.class)
+    outputJarTask.group 'build'
     outputJarTask.from sourceSets[additionalSourceSet].output
     outputJarTask.getArchiveClassifier().set(additionalSourceSet.toLowerCase())
 
     org.gradle.api.tasks.bundling.Jar sourcesJarTask = project.tasks.create(additionalSourceSetSourcesTaskName, org.gradle.api.tasks.bundling.Jar.class)
+    sourcesJarTask.group 'sources'
+    sourcesJarTask.duplicatesStrategy 'exclude'
     sourcesJarTask.from sourceSets[additionalSourceSet].allJava
     sourcesJarTask.getArchiveClassifier().set(additionalSourceSetSourcesClassifier)
 
     Task sourceSetBuildTask = project.tasks.create(additionalSourceSetBuildTask)
+    sourceSetBuildTask.group 'build'
     sourceSetBuildTask.dependsOn javaDocTask
     sourceSetBuildTask.dependsOn javadocJarTask
     sourceSetBuildTask.dependsOn outputJarTask
@@ -385,9 +402,9 @@ additionalSourceSetJars.forEach(additionalSourceSet -> {
     project.tasks.build.dependsOn sourceSetBuildTask
 })
 
-
 task sourcesJar(type: Jar) { it ->
     classifier = 'sources'
+    duplicatesStrategy 'exclude'
 
     primaryJarSourceSets.forEach(sourceSetName -> {
         it.from project.sourceSets[sourceSetName].allSource
@@ -396,7 +413,7 @@ task sourcesJar(type: Jar) { it ->
 
 javadoc {it ->
     primaryJarSourceSets.forEach(sourceSetName -> {
-        it.source +=  project.sourceSets[sourceSetName].allSource
+        it.source +=  project.sourceSets[sourceSetName].allJava
     })
 }
 
@@ -405,12 +422,9 @@ task packageJavadoc(type: Jar) {
     classifier = 'javadoc'
 }
 
-def projectUsesShadowing = false
-if ((project.hasProperty("shadowJar") && project.shadowJar.toString().toLowerCase() == "true") ||
-        (project.hasProperty("shadowRenamedNamespaces") &&  !project.shadowRenamedNamespaces.trim().isEmpty())
-    ) {
-    projectUsesShadowing = true
-}
+project.tasks.build.dependsOn sourcesJar
+project.tasks.build.dependsOn packageJavadoc
+
 
 if (projectUsesShadowing) {
     shadowJar { it ->
@@ -429,7 +443,7 @@ if (projectUsesShadowing) {
             }
         }
 
-        classifier = 'universal'
+        classifier = primaryJarClassifier
     }
 }
 
@@ -454,10 +468,12 @@ reobfuscationSourceSets.forEach(sourceSetName -> {
 
     def task = reobfuscationContainer.create(taskName)
     task.getClasspath().from(sourceSet.getCompileClasspath())
+    task.group 'reobfuscation'
 
     if (sourceSetName == "main" && projectUsesShadowing) {
         taskName = "shadowJar"
         def shadowTask = reobfuscationContainer.create(taskName)
+        shadowTask.group 'reobfuscation'
         shadowTask.getClasspath().from(sourceSet.getCompileClasspath())
     }
 })
@@ -509,7 +525,9 @@ publishing {
                 }
 
                 pub.artifacts.artifact(project.tasks[javaDocTaskName])
-                pub.artifacts.artifact(project.tasks[jarTaskName])
+                if (sourceSetName != "main") {
+                    pub.artifacts.artifact(project.tasks[jarTaskName])
+                }
                 pub.artifacts.artifact(project.tasks[sourceTaskName])
 
                 if (sourceSetName == "main" && projectUsesShadowing) {
