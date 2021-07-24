@@ -1,5 +1,3 @@
-import java.util.function.Function
-
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'com.matthewprenger.cursegradle'
 apply plugin: 'net.minecraftforge.gradle'
@@ -8,12 +6,21 @@ apply plugin: 'maven-publish'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
 
+if (project.file("local.gradle").exists()) {
+    apply from "local.gradle"
+}
+
 repositories {
     jcenter()
     mavenCentral()
     maven {
         name 'LDTTeam - Modding'
         url 'https://ldtteam.jfrog.io/ldtteam/modding/'
+    }
+    flatDir {
+        dirs {
+            "libs"
+        }
     }
 }
 
@@ -56,12 +63,49 @@ sourceSetAdditionalResourceDirectories.put("main", Collections.singleton("src/da
 sourceSetExcludedResourceDefinitions.put("main", Collections.singleton(".cache"))
 sourceSetIncludedResourceDefinitions.put("main", Collections.singleton("**/**"))
 
-if (project.hasProperty("customSourceSetManagement") && project.customSourceSetManagement.toString().toLowerCase() == "true") {
+if (project.hasProperty("extendDefaultSourceSetConfiguration") && project.extendDefaultSourceSetConfiguration.toString().toLowerCase() == "true") {
+    def additionalAvailableSourceSets = new HashSet<String>();
+    if (project.hasProperty("additionalSourceSets")) {
+        Arrays.stream(project.additionalSourceSets.split(";")).forEach(additionalAvailableSourceSets::add)
+    }
 
+    availableSourceSets.addAll(additionalAvailableSourceSets);
+    additionalAvailableSourceSets.forEach(customSourceSetName -> {
+        def configurationDependenciesPropertyName = customSourceSetName + "ConfigurationDependencies"
+        def sourceSetDependenciesPropertyName = customSourceSetName + "SourceSetDependencies"
+        def additionalResourcesPropertyName = customSourceSetName + "ResourceDirectories"
+        def excludeResourcesPropertyName = customSourceSetName + "ExcludedResources"
+        def includeResourcesPropertyName = customSourceSetName + "IncludedResources"
+
+        if (project.hasProperty[configurationDependenciesPropertyName]) {
+            sourceSetConfigurationDependencies.computeIfAbsent(customSourceSetName, newName -> new HashSet<String>())
+            Arrays.stream(project[configurationDependenciesPropertyName].split(";")).forEach(sourceSetConfigurationDependencies.get(customSourceSetName)::add)
+        }
+
+        if (project.hasProperty[sourceSetDependenciesPropertyName]) {
+            sourceSetSourceSetDependencies.computeIfAbsent(customSourceSetName, newName -> new HashSet<String>())
+            Arrays.stream(project[sourceSetDependenciesPropertyName].split(";")).forEach(sourceSetSourceSetDependencies.get(customSourceSetName)::add)
+        }
+
+        if (project.hasProperty[additionalResourcesPropertyName]) {
+            sourceSetAdditionalResourceDirectories.computeIfAbsent(customSourceSetName, newName -> new HashSet<String>())
+            Arrays.stream(project[additionalResourcesPropertyName].split(";")).forEach(sourceSetAdditionalResourceDirectories.get(customSourceSetName)::add)
+        }
+
+        if (project.hasProperty[excludeResourcesPropertyName]) {
+            sourceSetExcludedResourceDefinitions.computeIfAbsent(customSourceSetName, newName -> new HashSet<String>())
+            Arrays.stream(project[excludeResourcesPropertyName].split(";")).forEach(sourceSetExcludedResourceDefinitions.get(customSourceSetName)::add)
+        }
+
+        if (project.hasProperty[includeResourcesPropertyName]) {
+            sourceSetIncludedResourceDefinitions.computeIfAbsent(customSourceSetName, newName -> new HashSet<String>())
+            Arrays.stream(project[includeResourcesPropertyName].split(";")).forEach(sourceSetIncludedResourceDefinitions.get(customSourceSetName)::add)
+        }
+    })
 }
 
 availableSourceSets.forEach(sourceSetName -> {
-    def sourceSet = project.sourceSets[sourceSetName]
+    def sourceSet = project.sourceSets.maybeCreate(sourceSetName)
 
     sourceSet.java.srcDir "src/${sourceSetName}/java"
     sourceSet.resources.srcDir "src/${sourceSetName}/resources"
@@ -116,8 +160,19 @@ if (project.useJavaToolChains.toString().toLowerCase() == "true") {
 } else {
     sourceCompatibility = targetCompatibility = compileJava.sourceCompatibility = compileJava.targetCompatibility = project.javaVersion
 }
+
+def primaryJarSourceSets = new HashSet<String>()
+if (projectHasApi) {
+    primaryJarSourceSets.add("api")
+}
+primaryJarSourceSets.add("main")
+if (project.hasProperty("primaryJarSourceSets")) {
+    primaryJarSourceSets.clear();
+    Arrays.stream(project.primaryJarSourceSets.split(";")).forEach(sourceSetName -> primaryJarSourceSets.add(sourceSetName as String))
+}
+
 minecraft {
-    mappings channel: project.mcpChannel, version: project.mcpVersion
+    mappings channel: project.mappingsChannel, version: project.mappingsVersion
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
     runs {
@@ -127,7 +182,10 @@ minecraft {
             property 'forge.logging.console.level', 'info'
             mods { n ->
                 def mod = n.create(project.modId);
-                mod.sources(sourceSets.main, sourceSets.api)
+                primaryJarSourceSets.forEach(sourceSetName -> {
+                    def sourceSet = project.sourceSets[sourceSetName]
+                    mod.source(sourceSet)
+                })
             }
         }
 
@@ -137,7 +195,10 @@ minecraft {
             property 'forge.logging.console.level', 'info'
             mods { n ->
                 def mod = n.create(project.modId);
-                mod.sources(sourceSets.main, sourceSets.api)
+                primaryJarSourceSets.forEach(sourceSetName -> {
+                    def sourceSet = project.sourceSets[sourceSetName]
+                    mod.source(sourceSet)
+                })
             }
         }
 
@@ -150,7 +211,10 @@ minecraft {
                     '--existing', sourceSets.main.resources.srcDirs[0]
             mods { n ->
                 def mod = n.create(project.modId);
-                mod.sources(sourceSets.main, sourceSets.api)
+                primaryJarSourceSets.forEach(sourceSetName -> {
+                    def sourceSet = project.sourceSets[sourceSetName]
+                    mod.source(sourceSet)
+                })
             }
         }
     }
@@ -175,55 +239,57 @@ if (project.hasProperty("annotatedSourceSets")) {
     Arrays.stream(project.annotatedSourceSets.split(";")).forEach(sourceSetName -> annotatedSourceSets.add(sourceSetName as String))
 }
 
-def jUnitVersion = "4.11"
-def mockitoCoreVersion = "1.+"
-def powerMockModuleJUnit4Version = "1.6.5"
-def powerMockApiMockitoVersion = "1.6.5"
-def powerMockModuleJUnit4RuleEngineVersion = "1.6.5"
-def assertJCoreVersion = "3.9.0"
-def hamcrestAllVersion = "1.3"
+if (useDefaultTestSystem) {
+    def jUnitVersion = "4.11"
+    def mockitoCoreVersion = "1.+"
+    def powerMockModuleJUnit4Version = "1.6.5"
+    def powerMockApiMockitoVersion = "1.6.5"
+    def powerMockModuleJUnit4RuleEngineVersion = "1.6.5"
+    def assertJCoreVersion = "3.9.0"
+    def hamcrestAllVersion = "1.3"
 
-if (project.hasProperty("jUnitVersion")) {
-    jUnitVersion = project.jUnitVersion;
-}
-if (project.hasProperty("mockitoCoreVersion")) {
-    mockitoCoreVersion = project.mockitoCoreVersion;
-}
-if (project.hasProperty("powerMockVersion")) {
-    powerMockModuleJUnit4Version = project.powerMockVersion;
-    powerMockApiMockitoVersion = project.powerMockVersion;
-    powerMockModuleJUnit4RuleEngineVersion = project.powerMockVersion;
-}
-if (project.hasProperty("powerMockModuleJUnit4Version")) {
-    powerMockModuleJUnit4Version = project.powerMockModuleJUnit4Version;
-}
-if (project.hasProperty("powerMockApiMockitoVersion")) {
-    powerMockApiMockitoVersion = project.powerMockApiMockitoVersion;
-}
-if (project.hasProperty("powerMockModuleJUnit4RuleEngineVersion")) {
-    powerMockModuleJUnit4RuleEngineVersion = project.powerMockModuleJUnit4RuleEngineVersion;
-}
-if (project.hasProperty("assertJCoreVersion")) {
-    assertJCoreVersion = project.assertJCoreVersion;
-}
-if (project.hasProperty("hamcrestAllVersion")) {
-    hamcrestAllVersion = project.hamcrestAllVersion;
-}
-
-testSourceSets.forEach(sourceSetName -> {
-    def configurationName = sourceSetName + "Implementation"
-    if (sourceSetName == "main") {
-        configurationName = "implementation"
+    if (project.hasProperty("jUnitVersion")) {
+        jUnitVersion = project.jUnitVersion;
+    }
+    if (project.hasProperty("mockitoCoreVersion")) {
+        mockitoCoreVersion = project.mockitoCoreVersion;
+    }
+    if (project.hasProperty("powerMockVersion")) {
+        powerMockModuleJUnit4Version = project.powerMockVersion;
+        powerMockApiMockitoVersion = project.powerMockVersion;
+        powerMockModuleJUnit4RuleEngineVersion = project.powerMockVersion;
+    }
+    if (project.hasProperty("powerMockModuleJUnit4Version")) {
+        powerMockModuleJUnit4Version = project.powerMockModuleJUnit4Version;
+    }
+    if (project.hasProperty("powerMockApiMockitoVersion")) {
+        powerMockApiMockitoVersion = project.powerMockApiMockitoVersion;
+    }
+    if (project.hasProperty("powerMockModuleJUnit4RuleEngineVersion")) {
+        powerMockModuleJUnit4RuleEngineVersion = project.powerMockModuleJUnit4RuleEngineVersion;
+    }
+    if (project.hasProperty("assertJCoreVersion")) {
+        assertJCoreVersion = project.assertJCoreVersion;
+    }
+    if (project.hasProperty("hamcrestAllVersion")) {
+        hamcrestAllVersion = project.hamcrestAllVersion;
     }
 
-    dependencies.add(configurationName,  "junit:junit:${jUnitVersion}");
-    dependencies.add(configurationName,  "org.mockito:mockito-core:${mockitoCoreVersion}");
-    dependencies.add(configurationName,  "org.powermock:powermock-module-junit4:${powerMockModuleJUnit4Version}");
-    dependencies.add(configurationName,  "org.powermock:powermock-api-mockito:${powerMockApiMockitoVersion}");
-    dependencies.add(configurationName,  "org.powermock:powermock-module-junit4-rule-agent:${powerMockModuleJUnit4RuleEngineVersion}");
-    dependencies.add(configurationName,  "org.assertj:assertj-core:${assertJCoreVersion}");
-    dependencies.add(configurationName,  "org.hamcrest:hamcrest-all:${hamcrestAllVersion}");
-})
+    testSourceSets.forEach(sourceSetName -> {
+        def configurationName = sourceSetName + "Implementation"
+        if (sourceSetName == "main") {
+            configurationName = "implementation"
+        }
+
+        dependencies.add(configurationName,  "junit:junit:${jUnitVersion}");
+        dependencies.add(configurationName,  "org.mockito:mockito-core:${mockitoCoreVersion}");
+        dependencies.add(configurationName,  "org.powermock:powermock-module-junit4:${powerMockModuleJUnit4Version}");
+        dependencies.add(configurationName,  "org.powermock:powermock-api-mockito:${powerMockApiMockitoVersion}");
+        dependencies.add(configurationName,  "org.powermock:powermock-module-junit4-rule-agent:${powerMockModuleJUnit4RuleEngineVersion}");
+        dependencies.add(configurationName,  "org.assertj:assertj-core:${assertJCoreVersion}");
+        dependencies.add(configurationName,  "org.hamcrest:hamcrest-all:${hamcrestAllVersion}");
+    })
+}
 
 def intelliJAnnotationsVersion = "21.0.1"
 if (project.hasProperty("intelliJAnnotationsVersion")) {
@@ -248,14 +314,9 @@ if (project.hasProperty("primaryJarClassifier")) {
     primaryJarClassifier = project.primaryJarClassifier;
 }
 
-def primaryJarSourceSets = new HashSet<String>()
-if (projectHasApi) {
-    primaryJarSourceSets.add("api")
-}
-primaryJarSourceSets.add("main")
-if (project.hasProperty("primaryJarSourceSets")) {
-    primaryJarSourceSets.clear();
-    Arrays.stream(project.primaryJarSourceSets.split(";")).forEach(sourceSetName -> primaryJarSourceSets.add(sourceSetName as String))
+def automaticModuleName = project.modId
+if (project.hasProperty("automaticModuleName")) {
+    automaticModuleName = project.automaticModuleName;
 }
 
 jar {
@@ -274,11 +335,11 @@ jar {
                 "Implementation-Title"    : project.name,
                 "Implementation-Version"  : "${project.version}",
                 "Implementation-Vendor"   : "ldtteam",
-                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ")
+                "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
+                "Automatic-Module-Name"   : automaticModuleName
         ])
     }
 }
-
 
 def additionalSourceSetJars = new HashSet<String>();
 if (projectHasApi) {
@@ -299,19 +360,19 @@ additionalSourceSetJars.forEach(additionalSourceSet -> {
     String additionalSourceSetJavadocClassifier = additionalSourceSet.toLowerCase() + "-javadoc"
     String additionalSourceSetSourcesClassifier = additionalSourceSet.toLowerCase() + "-sources"
 
-    org.gradle.jvm.tasks.Javadoc javaDocTask = project.tasks.create(additionalSourceSetJavaDocTaskName, Javadoc.class);
+    org.gradle.api.tasks.javadoc.Javadoc javaDocTask = project.tasks.create(additionalSourceSetJavaDocTaskName, Javadoc.class);
     javaDocTask.source = sourceSets[additionalSourceSet]
 
-    org.gradle.jvm.tasks.Jar javadocJarTask = project.tasks.create(additionalSourceSetPackageJavaDocTaskName, org.gradle.jvm.tasks.Jar.class)
+    org.gradle.api.tasks.bundling.Jar javadocJarTask = project.tasks.create(additionalSourceSetPackageJavaDocTaskName, org.gradle.api.tasks.bundling.Jar.class)
     javadocJarTask.dependsOn javaDocTask
     javadocJarTask.from javaDocTask
     javadocJarTask.getArchiveClassifier().set(additionalSourceSetJavadocClassifier)
 
-    org.gradle.jvm.tasks.Jar outputJarTask = project.tasks.create(additionalSourceSetJarTaskName, org.gradle.jvm.tasks.Jar.class)
+    org.gradle.api.tasks.bundling.Jar outputJarTask = project.tasks.create(additionalSourceSetJarTaskName, org.gradle.api.tasks.bundling.Jar.class)
     outputJarTask.from sourceSets[additionalSourceSet].output
     outputJarTask.getArchiveClassifier().set(additionalSourceSet.toLowerCase())
 
-    org.gradle.jvm.tasks.Jar sourcesJarTask = project.tasks.create(additionalSourceSetSourcesTaskName, org.gradle.jvm.tasks.Jar.class)
+    org.gradle.api.tasks.bundling.Jar sourcesJarTask = project.tasks.create(additionalSourceSetSourcesTaskName, org.gradle.api.tasks.bundling.Jar.class)
     sourcesJarTask.from sourceSets[additionalSourceSet].allJava
     sourcesJarTask.getArchiveClassifier().set(additionalSourceSetSourcesClassifier)
 
@@ -321,7 +382,7 @@ additionalSourceSetJars.forEach(additionalSourceSet -> {
     sourceSetBuildTask.dependsOn outputJarTask
     sourceSetBuildTask.dependsOn sourcesJarTask
 
-    projects.tasks.build.dependsOn sourceSetBuildTask
+    project.tasks.build.dependsOn sourceSetBuildTask
 })
 
 
@@ -383,24 +444,23 @@ if (project.hasProperty("reobfuscationSourceSets")) {
     Arrays.stream(project.reobfuscationSourceSets.split(";")).forEach(sourceSetName -> reobfuscationSourceSets.add(sourceSetName as String))
 }
 
-reobf { r ->
-    reobfuscationSourceSets.forEach(sourceSetName -> {
-        def sourceSet = sourceSets[sourceSetName]
-        def taskName = sourceSetName + "Jar"
-        if (sourceSetName == "main") {
-            taskName = "jar"
-        }
+def reobfuscationContainer = project.reobf
+reobfuscationSourceSets.forEach(sourceSetName -> {
+    def sourceSet = project.sourceSets[sourceSetName]
+    def taskName = sourceSetName + "Jar"
+    if (sourceSetName == "main") {
+        taskName = "jar"
+    }
 
-        def task = r.create(taskName)
-        task.getClasspath().from(sourceSet.getCompileClassPath())
+    def task = reobfuscationContainer.create(taskName)
+    task.getClasspath().from(sourceSet.getCompileClasspath())
 
-        if (sourceSetName == "main" && projectUsesShadowing) {
-            taskName = "shadowJar"
-            def shadowTask = r.create(taskName)
-            shadowTask.getClasspath().from(sourceSet.getCompileClassPath())
-        }
-    })
-}
+    if (sourceSetName == "main" && projectUsesShadowing) {
+        taskName = "shadowJar"
+        def shadowTask = reobfuscationContainer.create(taskName)
+        shadowTask.getClasspath().from(sourceSet.getCompileClasspath())
+    }
+})
 
 def publishableSourceSets = new HashSet<String>()
 if (projectHasApi) {
@@ -423,12 +483,12 @@ artifacts { it ->
             sourceTaskName = "sourcesJar"
         }
 
-        it.add("mavenJava", project.tasks[javaDocTaskName])
-        it.add("mavenJava", project.tasks[jarTaskName])
-        it.add("mavenJava", project.tasks[sourceTaskName])
+        it.add("default", project.tasks[javaDocTaskName])
+        it.add("default", project.tasks[jarTaskName])
+        it.add("default", project.tasks[sourceTaskName])
 
         if (sourceSetName == "main" && projectUsesShadowing) {
-            it.add("mavenJava", project.tasks.shadowJar);
+            it.add("default", project.tasks.shadowJar);
         }
     })
 }
