@@ -1,3 +1,8 @@
+if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLowerCase() == "true") {
+    apply plugin: 'de.undercouch.download'
+}
+
+apply plugin: 'java-library'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: 'com.matthewprenger.cursegradle'
 apply plugin: 'net.minecraftforge.gradle'
@@ -5,10 +10,6 @@ apply plugin: 'jacoco'
 apply plugin: 'maven-publish'
 apply plugin: 'idea'
 apply plugin: 'eclipse'
-
-if (project.file("local.gradle").exists()) {
-    apply from "local.gradle"
-}
 
 repositories {
     jcenter()
@@ -24,6 +25,12 @@ repositories {
     }
 }
 
+HashSet<String> newSet(String... members) {
+    def set = new HashSet<String>();
+    set.addAll(members);
+    return set;
+}
+
 group = project.modGroup
 version = project.exactMinecraftVersion + "-" + (System.getenv().containsKey("Version") ? System.getenv("Version") : project.modVersion)
 archivesBaseName = project.modId
@@ -35,7 +42,6 @@ if (project.hasProperty("projectHasApi")) {
     projectHasApi = projectHasApi.toString().toLowerCase() == "true"
 }
 
-
 def defaultSourceSetConfigurationDependencies = new HashSet<String>();
 def availableSourceSets = new LinkedHashSet<String>();
 def sourceSetConfigurationDependencies = new HashMap<String, Set<String>>();
@@ -43,6 +49,7 @@ def sourceSetSourceSetDependencies = new HashMap<String, Set<String>>();
 def sourceSetAdditionalResourceDirectories = new HashMap<String, Set<String>>();
 def sourceSetExcludedResourceDefinitions = new HashMap<String, Set<String>>();
 def sourceSetIncludedResourceDefinitions = new HashMap<String, Set<String>>();
+def sourceSetClassifiers = new HashMap<String, String>();
 
 defaultSourceSetConfigurationDependencies.add("minecraft");
 
@@ -52,16 +59,58 @@ if (projectHasApi) {
 availableSourceSets.add("main");
 availableSourceSets.add("test");
 
+sourceSetClassifiers.put("api", "api");
+sourceSetClassifiers.put("main", "");
+sourceSetClassifiers.put("test", "test");
+
 if (projectHasApi) {
     sourceSetConfigurationDependencies.put("api", defaultSourceSetConfigurationDependencies);
 }
 
-sourceSetSourceSetDependencies.put("main", Collections.singleton("api"));
-sourceSetSourceSetDependencies.put("test", Collections.singleton("api"));
+sourceSetSourceSetDependencies.put("main", newSet("api"));
+sourceSetSourceSetDependencies.put("test", newSet("api"));
 
-sourceSetAdditionalResourceDirectories.put("main", Collections.singleton("src/datagen/generated/${project.modId}"))
-sourceSetExcludedResourceDefinitions.put("main", Collections.singleton(".cache"))
-sourceSetIncludedResourceDefinitions.put("main", Collections.singleton("**/**"))
+sourceSetAdditionalResourceDirectories.put("main", newSet("src/datagen/generated/${project.modId}"))
+sourceSetExcludedResourceDefinitions.put("main", newSet(".cache"))
+sourceSetIncludedResourceDefinitions.put("main", newSet("**/**"))
+
+ext.loadSourceSetConfiguration = {(project, sourceSetName) -> {
+    def configurationDependenciesPropertyName = sourceSetName + "ConfigurationDependencies"
+    def sourceSetDependenciesPropertyName = sourceSetName + "SourceSetDependencies"
+    def additionalResourcesPropertyName = sourceSetName + "ResourceDirectories"
+    def excludeResourcesPropertyName = sourceSetName + "ExcludedResources"
+    def includeResourcesPropertyName = sourceSetName + "IncludedResources"
+    def customClassifierPropertyName = sourceSetName + "Classifier"
+
+    if (project.hasProperty(configurationDependenciesPropertyName)) {
+        sourceSetConfigurationDependencies.computeIfAbsent(sourceSetName, newName -> new HashSet<String>())
+        Arrays.stream(project[configurationDependenciesPropertyName].split(";")).forEach(sourceSetConfigurationDependencies.get(sourceSetName)::add)
+    }
+
+    if (project.hasProperty(sourceSetDependenciesPropertyName)) {
+        sourceSetSourceSetDependencies.computeIfAbsent(sourceSetName, newName -> new HashSet<String>())
+        Arrays.stream(project[sourceSetDependenciesPropertyName].split(";")).forEach(sourceSetSourceSetDependencies.get(sourceSetName)::add)
+    }
+
+    if (project.hasProperty(additionalResourcesPropertyName)) {
+        sourceSetAdditionalResourceDirectories.computeIfAbsent(sourceSetName, newName -> new HashSet<String>())
+        Arrays.stream(project[additionalResourcesPropertyName].split(";")).forEach(sourceSetAdditionalResourceDirectories.get(sourceSetName)::add)
+    }
+
+    if (project.hasProperty(excludeResourcesPropertyName)) {
+        sourceSetExcludedResourceDefinitions.computeIfAbsent(sourceSetName, newName -> new HashSet<String>())
+        Arrays.stream(project[excludeResourcesPropertyName].split(";")).forEach(sourceSetExcludedResourceDefinitions.get(sourceSetName)::add)
+    }
+
+    if (project.hasProperty(includeResourcesPropertyName)) {
+        sourceSetIncludedResourceDefinitions.computeIfAbsent(sourceSetName, newName -> new HashSet<String>())
+        Arrays.stream(project[includeResourcesPropertyName].split(";")).forEach(sourceSetIncludedResourceDefinitions.get(sourceSetName)::add)
+    }
+
+    if (project.hasProperty(customClassifierPropertyName)) {
+        sourceSetClassifiers.put(sourceSetName, project.customClassifierPropertyName)
+    }
+}}
 
 if (project.hasProperty("extendDefaultSourceSetConfiguration") && project.extendDefaultSourceSetConfiguration.toString().toLowerCase() == "true") {
     def additionalAvailableSourceSets = new HashSet<String>();
@@ -71,40 +120,18 @@ if (project.hasProperty("extendDefaultSourceSetConfiguration") && project.extend
 
     availableSourceSets.addAll(additionalAvailableSourceSets);
     additionalAvailableSourceSets.forEach(customSourceSetName -> {
-        def configurationDependenciesPropertyName = customSourceSetName + "ConfigurationDependencies"
-        def sourceSetDependenciesPropertyName = customSourceSetName + "SourceSetDependencies"
-        def additionalResourcesPropertyName = customSourceSetName + "ResourceDirectories"
-        def excludeResourcesPropertyName = customSourceSetName + "ExcludedResources"
-        def includeResourcesPropertyName = customSourceSetName + "IncludedResources"
+        project.logger.lifecycle "Loading additional source set: ${customSourceSetName}"
 
-        if (project.hasProperty[configurationDependenciesPropertyName]) {
-            sourceSetConfigurationDependencies.computeIfAbsent(customSourceSetName, newName -> new HashSet<String>())
-            Arrays.stream(project[configurationDependenciesPropertyName].split(";")).forEach(sourceSetConfigurationDependencies.get(customSourceSetName)::add)
-        }
-
-        if (project.hasProperty[sourceSetDependenciesPropertyName]) {
-            sourceSetSourceSetDependencies.computeIfAbsent(customSourceSetName, newName -> new HashSet<String>())
-            Arrays.stream(project[sourceSetDependenciesPropertyName].split(";")).forEach(sourceSetSourceSetDependencies.get(customSourceSetName)::add)
-        }
-
-        if (project.hasProperty[additionalResourcesPropertyName]) {
-            sourceSetAdditionalResourceDirectories.computeIfAbsent(customSourceSetName, newName -> new HashSet<String>())
-            Arrays.stream(project[additionalResourcesPropertyName].split(";")).forEach(sourceSetAdditionalResourceDirectories.get(customSourceSetName)::add)
-        }
-
-        if (project.hasProperty[excludeResourcesPropertyName]) {
-            sourceSetExcludedResourceDefinitions.computeIfAbsent(customSourceSetName, newName -> new HashSet<String>())
-            Arrays.stream(project[excludeResourcesPropertyName].split(";")).forEach(sourceSetExcludedResourceDefinitions.get(customSourceSetName)::add)
-        }
-
-        if (project.hasProperty[includeResourcesPropertyName]) {
-            sourceSetIncludedResourceDefinitions.computeIfAbsent(customSourceSetName, newName -> new HashSet<String>())
-            Arrays.stream(project[includeResourcesPropertyName].split(";")).forEach(sourceSetIncludedResourceDefinitions.get(customSourceSetName)::add)
-        }
+        project.ext.loadSourceSetConfiguration(project, customSourceSetName);
     })
+
+    project.ext.loadSourceSetConfiguration(project, "api");
+    project.ext.loadSourceSetConfiguration(project, "main");
+    project.ext.loadSourceSetConfiguration(project, "test");
 }
 
 availableSourceSets.forEach(sourceSetName -> {
+    project.logger.lifecycle "Configuring source set: ${sourceSetName}"
     def sourceSet = project.sourceSets.maybeCreate(sourceSetName)
 
     sourceSet.java.srcDir "src/${sourceSetName}/java"
@@ -113,6 +140,7 @@ availableSourceSets.forEach(sourceSetName -> {
     if (sourceSetConfigurationDependencies.containsKey(sourceSetName)) {
         def configurationDependencies = sourceSetConfigurationDependencies.get(sourceSetName);
         configurationDependencies.forEach(configurationName -> {
+            project.logger.lifecycle " > Adding configuration: ${configurationName} as a dependency..."
             sourceSet.compileClasspath += project.configurations.getByName(configurationName);
         })
     }
@@ -120,7 +148,8 @@ availableSourceSets.forEach(sourceSetName -> {
     if (sourceSetSourceSetDependencies.containsKey(sourceSetName)) {
         def sourceSetDependencies = sourceSetSourceSetDependencies.get(sourceSetName)
         sourceSetDependencies.forEach(otherSourceSetName -> {
-            def otherSourceSet = project.sourceSets[otherSourceSetName]
+            project.logger.lifecycle " > Adding source set: ${otherSourceSetName} as a dependency..."
+            def otherSourceSet = project.sourceSets.maybeCreate(otherSourceSetName);
 
             sourceSet.compileClasspath += otherSourceSet.output;
             sourceSet.runtimeClasspath += otherSourceSet.output;
@@ -130,6 +159,7 @@ availableSourceSets.forEach(sourceSetName -> {
     if (sourceSetIncludedResourceDefinitions.containsKey(sourceSetName)) {
         def includeDefinitions = sourceSetIncludedResourceDefinitions.get(sourceSetName)
         includeDefinitions.forEach(definition -> {
+            project.logger.lifecycle " > Adding: ${definition} as an resource include spec..."
             sourceSet.resources.include definition
         })
     }
@@ -137,6 +167,7 @@ availableSourceSets.forEach(sourceSetName -> {
     if (sourceSetAdditionalResourceDirectories.containsKey(sourceSetName)) {
         def additionalResourceDirectories = sourceSetAdditionalResourceDirectories.get(sourceSetName);
         additionalResourceDirectories.forEach(directory -> {
+            project.logger.lifecycle " > Adding: ${directory} as an resource directory..."
             sourceSet.resources.srcDirs += directory
         })
     }
@@ -144,6 +175,7 @@ availableSourceSets.forEach(sourceSetName -> {
     if (sourceSetExcludedResourceDefinitions.containsKey(sourceSetName)) {
         def excludeDefinitions = sourceSetExcludedResourceDefinitions.get(sourceSetName)
         excludeDefinitions.forEach(definition -> {
+            project.logger.lifecycle " > Adding: ${definition} as an resource exclude spec..."
             sourceSet.resources.exclude definition
         })
     }
@@ -240,11 +272,11 @@ if (project.hasProperty("annotatedSourceSets")) {
 }
 
 if (useDefaultTestSystem) {
-    def jUnitVersion = "4.11"
+    def jUnitVersion = "4.13"
     def mockitoCoreVersion = "1.+"
-    def powerMockModuleJUnit4Version = "1.6.5"
-    def powerMockApiMockitoVersion = "1.6.5"
-    def powerMockModuleJUnit4RuleEngineVersion = "1.6.5"
+    def powerMockModuleJUnit4Version = "2.0.2"
+    def powerMockApiMockitoVersion = "2.0.2"
+    def powerMockModuleJUnit4RuleEngineVersion = "2.0.2"
     def assertJCoreVersion = "3.9.0"
     def hamcrestAllVersion = "1.3"
 
@@ -284,7 +316,7 @@ if (useDefaultTestSystem) {
         dependencies.add(configurationName,  "junit:junit:${jUnitVersion}");
         dependencies.add(configurationName,  "org.mockito:mockito-core:${mockitoCoreVersion}");
         dependencies.add(configurationName,  "org.powermock:powermock-module-junit4:${powerMockModuleJUnit4Version}");
-        dependencies.add(configurationName,  "org.powermock:powermock-api-mockito:${powerMockApiMockitoVersion}");
+        dependencies.add(configurationName,  "org.powermock:powermock-api-mockito2:${powerMockApiMockitoVersion}");
         dependencies.add(configurationName,  "org.powermock:powermock-module-junit4-rule-agent:${powerMockModuleJUnit4RuleEngineVersion}");
         dependencies.add(configurationName,  "org.assertj:assertj-core:${assertJCoreVersion}");
         dependencies.add(configurationName,  "org.hamcrest:hamcrest-all:${hamcrestAllVersion}");
@@ -320,7 +352,7 @@ if (project.hasProperty("automaticModuleName")) {
 }
 
 def projectUsesShadowing = false
-if ((project.hasProperty("shadowJar") && project.shadowJar.toString().toLowerCase() == "true") ||
+if ((project.hasProperty("useShadowJar") && project.useShadowJar.toString().toLowerCase() == "true") ||
         (project.hasProperty("shadowRenamedNamespaces") &&  !project.shadowRenamedNamespaces.trim().isEmpty())
 ) {
     projectUsesShadowing = true
@@ -367,8 +399,8 @@ additionalSourceSetJars.forEach(additionalSourceSet -> {
     String additionalSourceSetSourcesTaskName = additionalSourceSet + "Sources"
     String additionalSourceSetBuildTask = additionalSourceSet + "Build"
 
-    String additionalSourceSetJavadocClassifier = additionalSourceSet.toLowerCase() + "-javadoc"
-    String additionalSourceSetSourcesClassifier = additionalSourceSet.toLowerCase() + "-sources"
+    String additionalSourceSetJavadocClassifier = sourceSetClassifiers.getOrDefault(additionalSourceSet, additionalSourceSet.toLowerCase()) + "-javadoc"
+    String additionalSourceSetSourcesClassifier = sourceSetClassifiers.getOrDefault(additionalSourceSet, additionalSourceSet.toLowerCase()) + "-sources"
 
     org.gradle.api.tasks.javadoc.Javadoc javaDocTask = project.tasks.create(additionalSourceSetJavaDocTaskName, Javadoc.class);
     javaDocTask.setClasspath(sourceSets[additionalSourceSet].getCompileClasspath())
@@ -529,10 +561,6 @@ publishing {
                     pub.artifacts.artifact(project.tasks[jarTaskName])
                 }
                 pub.artifacts.artifact(project.tasks[sourceTaskName])
-
-                if (sourceSetName == "main" && projectUsesShadowing) {
-                    pub.artifacts.artifact(project.tasks.shadowJar);
-                }
             })
 
             pom {
@@ -573,6 +601,10 @@ publishing {
             pom.withXml { xmlProvider ->
                 def dependencies = asNode().dependencies
                 def allDeps = dependencies.'*';
+
+                allDeps.findAll {
+                    println it
+                }
 
                 // Remove forge deps
                 allDeps.findAll() { el ->
@@ -616,13 +648,11 @@ publishing {
 
 task setupDecompWorkspace {
     doLast {
-        project.logger.log(LogLevel.DEBUG, "FG3+ does not require to setup a decomp workspace")
     }
 }
 
 task setupCIWorkspace {
     doLast {
-        project.logger.log(LogLevel.DEBUG, "FG3+ does not require to setup a CI workspace")
     }
 }
 
@@ -669,6 +699,7 @@ curseforge { cf ->
     }
 }
 
+
 task("createChangelog") {
     group = 'upload'
 
@@ -704,5 +735,80 @@ idea {
     module {
         inheritOutputDirs = true
     }
+}
+
+
+if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLowerCase() == "true") {
+    task downloadCrowdin() {
+        ext {
+            output = file('build/crowdin_raw.zip')
+            update = file('build/crowdin.json')
+            id = project.crowdinId
+        }
+        onlyIf {
+            System.getenv().containsKey("crowdinKey") && !project.gradle.startParameter.isOffline()
+        }
+        doLast {
+            download {
+                src "https://api.crowdin.com/api/project/${id}/export?key=${System.getenv("crowdinKey")}&json"
+                dest update
+                overwrite true
+            }
+            if (!update.text.contains('success')) {
+                throw new RuntimeException("Crowdin export failed, see ${update} for more info")
+            }
+            download {
+                src "https://api.crowdin.com/api/project/${id}/download/all.zip?key=${System.getenv("crowdinKey")}"
+                dest output
+                overwrite true
+            }
+        }
+    }
+
+    task crowdin(type: Zip) {
+        dependsOn downloadCrowdin
+        onlyIf {
+            !downloadCrowdin.state.skipped
+        }
+        baseName = project.name
+        version = project.version
+        classifier = 'crowdin'
+        destinationDir = file('build/distributions')
+        from(zipTree(downloadCrowdin.output)){
+            eachFile {
+                if (!it.path.startsWith('assets/')) {
+                    it.relativePath = new RelativePath(true, it.relativePath.segments.drop(4))
+                }
+            }
+            exclude { it.isDirectory() }
+            rename { it.toLowerCase() }
+        }
+    }
+}
+
+tasks.withType(org.gradle.api.tasks.Copy.class, {task ->
+    task.duplicatesStrategy 'exclude'
+})
+
+tasks.withType(Jar.class, {task ->
+    task.duplicatesStrategy 'exclude'
+})
+
+fileTree('gradle') {
+    include '**/*.gradle'
+}.visit { FileVisitDetails details ->
+    if (details.file.isDirectory())
+        return
+
+    if (details.file.name.contains("local"))
+        return
+
+    project.logger.lifecycle "Loading additoinal configuration from: ${details.file.path}"
+    apply from: details.file.path
+}
+
+if (project.file("gradle/local.gradle").exists()) {
+    project.logger.lifecycle "Loading additoinal configuration from: ${project.file("gradle/local.gradle").path}"
+    apply from: "gradle/local.gradle"
 }
 
