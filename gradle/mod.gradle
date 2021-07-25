@@ -4,7 +4,9 @@ if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLower
 
 apply plugin: 'java-library'
 apply plugin: 'com.github.johnrengelman.shadow'
-apply plugin: 'com.matthewprenger.cursegradle'
+if (project.hasProperty("curseId") && project.curseId.trim() != "") {
+    apply plugin: 'com.matthewprenger.cursegradle'
+}
 apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'jacoco'
 apply plugin: 'maven-publish'
@@ -656,80 +658,92 @@ task setupCIWorkspace {
     }
 }
 
-curseforge { cf ->
-    if (System.getenv().CURSEAPIKEY != null && System.getenv().CURSERELEASETYPE != null) {
-        apiKey = System.getenv().CURSEAPIKEY
+if (project.hasProperty("curseId") && project.curseId.trim() != "") {
+    curseforge { cf ->
+        if (System.getenv().CURSEAPIKEY != null && System.getenv().CURSERELEASETYPE != null) {
+            apiKey = System.getenv().CURSEAPIKEY
 
-        project {
-            id = project.curseId
-            addGameVersion project.exactMinecraftVersion
-            changelog = file('build/changelog.md')
-            changelogType = 'markdown'
-            releaseType = System.getenv().CURSERELEASETYPE
+            project {
+                id = project.curseId
+                addGameVersion project.exactMinecraftVersion
+                changelog = file('build/changelog.md')
+                changelogType = 'markdown'
+                releaseType = System.getenv().CURSERELEASETYPE
 
-            if (!project.additionalMinecraftVersions.trim().isEmpty()) {
-                project.additionalMinecraftVersions.split(",").each { v ->
-                    addGameVersion v
+                if (!project.additionalMinecraftVersions.trim().isEmpty()) {
+                    project.additionalMinecraftVersions.split(",").each { v ->
+                        addGameVersion v
+                    }
                 }
-            }
 
-            if (projectUsesShadowing) {
-                mainArtifact shadowJar
+                if (projectUsesShadowing) {
+                    mainArtifact shadowJar
+                } else {
+                    mainArtifact jar
+                }
+
+                publishableSourceSets.forEach(sourceSetName -> {
+                    String javaDocTaskName = sourceSetName + "PackageJavadoc"
+                    String jarTaskName = sourceSetName + "Jar"
+                    String sourceTaskName = sourceSetName + "Sources"
+                    if (sourceSetName == "main") {
+                        javaDocTaskName = "packageJavadoc"
+                        jarTaskName = "jar"
+                        sourceTaskName = "sourcesJar"
+                    }
+
+                    cf.addArtifact(project.tasks[javaDocTaskName])
+                    if (sourceSetName != "main" || projectUsesShadowing) {
+                        cf.addArtifact(project.tasks[jarTaskName])
+                    }
+                    cf.addArtifact(project.tasks[sourceTaskName])
+                })
+            }
+        }
+    }
+
+    task("createChangelog") {
+        group = 'upload'
+
+        doLast {
+            def teamCityURL = "https://buildsystem.ldtteam.com/"
+            def file = new FileOutputStream("build/changelog.md")
+            def out = new BufferedOutputStream(file)
+            def changesXML = new XmlSlurper().parse(teamCityURL + "guestAuth/app/rest/changes?locator=build:(id:" + teamcity["teamcity.build.id"] + ")")
+
+            def changes = changesXML.change
+            println("createChangelog: Identified " + changes.size() + " changes to be written into the changelog.")
+
+            out << "# ${project.modId} Changelog \n"
+            out << "## Version: _" + version + "_ \n"
+
+            if (changes.size() > 0) {
+                for (int i = 0; i < changes.size(); i++) {
+                    def changeDetailsURL = teamCityURL + "guestAuth/app/rest/changes/id:" + changes[i].@id.text()
+                    def changeDetailsXml = new XmlSlurper().parse(changeDetailsURL)
+                    def changeComment = changeDetailsXml.comment.text().trim()
+
+                    out << "* " + changeComment + "\n"
+                }
             } else {
-                mainArtifact jar
+                out << "No Changes detected!"
             }
 
-            publishableSourceSets.forEach(sourceSetName -> {
-                String javaDocTaskName = sourceSetName + "PackageJavadoc"
-                String jarTaskName = sourceSetName + "Jar"
-                String sourceTaskName = sourceSetName + "Sources"
-                if (sourceSetName == "main") {
-                    javaDocTaskName = "packageJavadoc"
-                    jarTaskName = "jar"
-                    sourceTaskName = "sourcesJar"
-                }
-
-                cf.addArtifact(project.tasks[javaDocTaskName])
-                if (sourceSetName != "main" || projectUsesShadowing) {
-                    cf.addArtifact(project.tasks[jarTaskName])
-                }
-                cf.addArtifact(project.tasks[sourceTaskName])
-            })
+            out.close()
         }
     }
 }
+else
+{
+    task("curseforge") {
+        //Noop
+    }
 
-
-task("createChangelog") {
-    group = 'upload'
-
-    doLast {
-        def teamCityURL = "https://buildsystem.ldtteam.com/"
-        def file = new FileOutputStream("build/changelog.md")
-        def out = new BufferedOutputStream(file)
-        def changesXML = new XmlSlurper().parse(teamCityURL + "guestAuth/app/rest/changes?locator=build:(id:" + teamcity["teamcity.build.id"] + ")")
-
-        def changes = changesXML.change
-        println("createChangelog: Identified " + changes.size() + " changes to be written into the changelog.")
-
-        out << "# ${project.modId} Changelog \n"
-        out << "## Version: _" + version + "_ \n"
-
-        if (changes.size() > 0) {
-            for (int i = 0; i < changes.size(); i++) {
-                def changeDetailsURL = teamCityURL + "guestAuth/app/rest/changes/id:" + changes[i].@id.text()
-                def changeDetailsXml = new XmlSlurper().parse(changeDetailsURL)
-                def changeComment = changeDetailsXml.comment.text().trim()
-
-                out << "* " + changeComment + "\n"
-            }
-        } else {
-            out << "No Changes detected!"
-        }
-
-        out.close()
+    task("createChangelog") {
+        //Noop
     }
 }
+
 
 idea {
     module {
