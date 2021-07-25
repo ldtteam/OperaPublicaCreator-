@@ -3,7 +3,17 @@ if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLower
 }
 
 apply plugin: 'java-library'
-apply plugin: 'com.github.johnrengelman.shadow'
+
+def projectUsesShadowing = false
+if ((project.hasProperty("useShadowJar") && project.useShadowJar.toString().toLowerCase() == "true") ||
+        (project.hasProperty("shadowRenamedNamespaces") &&  !project.shadowRenamedNamespaces.trim().isEmpty())
+) {
+    projectUsesShadowing = true
+}
+
+if (projectUsesShadowing) {
+    apply plugin: 'com.github.johnrengelman.shadow'
+}
 if (project.hasProperty("curseId") && project.curseId.trim() != "") {
     apply plugin: 'com.matthewprenger.cursegradle'
 }
@@ -41,7 +51,11 @@ project.logger.lifecycle("Starting Gradle build for: " + project.modId + " with 
 
 def projectHasApi = true;
 if (project.hasProperty("projectHasApi")) {
-    projectHasApi = projectHasApi.toString().toLowerCase() == "true"
+    projectHasApi = project.projectHasApi.toString().toLowerCase() == "true"
+
+    if (!projectHasApi) {
+        project.logger.lifecycle "Disabling API systems."
+    }
 }
 
 def defaultSourceSetConfigurationDependencies = new HashSet<String>();
@@ -67,10 +81,10 @@ sourceSetClassifiers.put("test", "test");
 
 if (projectHasApi) {
     sourceSetConfigurationDependencies.put("api", defaultSourceSetConfigurationDependencies);
-}
 
-sourceSetSourceSetDependencies.put("main", newSet("api"));
-sourceSetSourceSetDependencies.put("test", newSet("api"));
+    sourceSetSourceSetDependencies.put("main", newSet("api"));
+    sourceSetSourceSetDependencies.put("test", newSet("api"));
+}
 
 sourceSetAdditionalResourceDirectories.put("main", newSet("src/datagen/generated/${project.modId}"))
 sourceSetExcludedResourceDefinitions.put("main", newSet(".cache"))
@@ -127,7 +141,9 @@ if (project.hasProperty("extendDefaultSourceSetConfiguration") && project.extend
         project.ext.loadSourceSetConfiguration(project, customSourceSetName);
     })
 
-    project.ext.loadSourceSetConfiguration(project, "api");
+    if (projectHasApi) {
+        project.ext.loadSourceSetConfiguration(project, "api");
+    }
     project.ext.loadSourceSetConfiguration(project, "main");
     project.ext.loadSourceSetConfiguration(project, "test");
 }
@@ -358,13 +374,6 @@ if (project.hasProperty("primaryJarClassifier")) {
 def automaticModuleName = project.modId
 if (project.hasProperty("automaticModuleName")) {
     automaticModuleName = project.automaticModuleName;
-}
-
-def projectUsesShadowing = false
-if ((project.hasProperty("useShadowJar") && project.useShadowJar.toString().toLowerCase() == "true") ||
-        (project.hasProperty("shadowRenamedNamespaces") &&  !project.shadowRenamedNamespaces.trim().isEmpty())
-) {
-    projectUsesShadowing = true
 }
 
 jar {
