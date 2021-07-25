@@ -205,6 +205,13 @@ if (project.hasProperty("primaryJarSourceSets")) {
     Arrays.stream(project.primaryJarSourceSets.split(";")).forEach(sourceSetName -> primaryJarSourceSets.add(sourceSetName as String))
 }
 
+def runtimeSourceSets = new HashSet<String>()
+runtimeSourceSets.addAll(primaryJarSourceSets);
+if (project.hasProperty("runtimeSourceSets")) {
+    runtimeSourceSets.clear();
+    Arrays.stream(project.runtimeSourceSets.split(";")).forEach(sourceSetName -> runtimeSourceSets.add(sourceSetName as String))
+}
+
 minecraft {
     mappings channel: project.mappingsChannel, version: project.mappingsVersion
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
@@ -216,7 +223,7 @@ minecraft {
             property 'forge.logging.console.level', 'info'
             mods { n ->
                 def mod = n.create(project.modId);
-                primaryJarSourceSets.forEach(sourceSetName -> {
+                runtimeSourceSets.forEach(sourceSetName -> {
                     def sourceSet = project.sourceSets[sourceSetName]
                     mod.source(sourceSet)
                 })
@@ -229,7 +236,7 @@ minecraft {
             property 'forge.logging.console.level', 'info'
             mods { n ->
                 def mod = n.create(project.modId);
-                primaryJarSourceSets.forEach(sourceSetName -> {
+                runtimeSourceSets.forEach(sourceSetName -> {
                     def sourceSet = project.sourceSets[sourceSetName]
                     mod.source(sourceSet)
                 })
@@ -245,7 +252,7 @@ minecraft {
                     '--existing', sourceSets.main.resources.srcDirs[0]
             mods { n ->
                 def mod = n.create(project.modId);
-                primaryJarSourceSets.forEach(sourceSetName -> {
+                runtimeSourceSets.forEach(sourceSetName -> {
                     def sourceSet = project.sourceSets[sourceSetName]
                     mod.source(sourceSet)
                 })
