@@ -376,6 +376,11 @@ if (project.hasProperty("automaticModuleName")) {
     automaticModuleName = project.automaticModuleName;
 }
 
+def isFMLLibrary = false;
+if (project.hasProperty("isFMLLibrary") && project.isFMLLibrary.toString().toLowerCase() == "true") {
+    isFMLLibrary = true;
+}
+
 jar {
     primaryJarSourceSets.forEach(sourceSetName -> {
         project.jar.from project.sourceSets[sourceSetName].output
@@ -398,6 +403,12 @@ jar {
                 "Implementation-Timestamp": new Date().format("yyyy-MM-dd'T'HH:mm:ssZ"),
                 "Automatic-Module-Name"   : automaticModuleName
         ])
+
+        if (isFMLLibrary) {
+            attributes([
+                'FMLModType'          : "LIBRARY",
+            ])
+        }
     }
 }
 
