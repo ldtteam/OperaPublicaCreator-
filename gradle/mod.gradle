@@ -826,6 +826,10 @@ tasks.withType(Jar.class, {task ->
     task.duplicatesStrategy 'exclude'
 })
 
+tasks.withType(GenerateModuleMetadata) {
+    enabled = false
+}
+
 fileTree('gradle') {
     include '**/*.gradle'
 }.visit { FileVisitDetails details ->
@@ -843,4 +847,3 @@ if (project.file("gradle/local.gradle").exists()) {
     project.logger.lifecycle "Loading additoinal configuration from: ${project.file("gradle/local.gradle").path}"
     apply from: "gradle/local.gradle"
 }
-
