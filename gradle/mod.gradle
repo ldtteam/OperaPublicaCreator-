@@ -564,6 +564,8 @@ publishing {
         mavenJava(MavenPublication) {pub ->
             from project.components.java
 
+            artifactId project.modId
+
             publishableSourceSets.forEach(sourceSetName -> {
                 String javaDocTaskName = sourceSetName + "PackageJavadoc"
                 String jarTaskName = sourceSetName + "Jar"
