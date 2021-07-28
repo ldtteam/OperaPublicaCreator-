@@ -498,23 +498,24 @@ project.tasks.build.dependsOn packageJavadoc
 
 
 if (projectUsesShadowing) {
-    shadowJar { it ->
+    shadowJar { shadowJarTask ->
         primaryJarSourceSets.forEach(sourceSetName -> {
-            it.from project.sourceSets[sourceSetName].output
+            shadowJarTask.from project.sourceSets[sourceSetName].output
         })
 
-        configurations = [project.configurations.contained]
+        shadowJarTask.configurations = [project.configurations.contained]
 
-        if (!project.shadowRenamedNamespaces.trim().isEmpty()) {
+        if (project.hasProperty("shadowRenamedNamespaces") && !project.shadowRenamedNamespaces.trim().isEmpty()) {
             project.shadowRenamedNamespaces.split(',').each { n ->
                 if (n.contains(':')) {
                     def namespaceSpecs = n.split(':');
-                    relocate n[0], n[1]
+                    project.logger.lifecycle "Shading ${namespaceSpecs[0]} to ${namespaceSpecs[1]}"
+                    shadowJarTask.relocate namespaceSpecs[0], namespaceSpecs[1]
                 }
             }
         }
 
-        classifier = primaryJarClassifier
+        shadowJarTask.classifier = primaryJarClassifier
     }
 }
 
