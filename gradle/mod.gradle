@@ -1,3 +1,5 @@
+import java.util.function.Predicate
+
 if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLowerCase() == "true") {
     apply plugin: 'de.undercouch.download'
 }
@@ -41,6 +43,13 @@ HashSet<String> newSet(String... members) {
     def set = new HashSet<String>();
     set.addAll(members);
     return set;
+}
+
+String getConfigurationName(String sourceSetName, String configurationPostFix) {
+    if (sourceSetName != "main")
+        return sourceSetName + configurationPostFix;
+
+    return configurationPostFix.substring(0, 1).toLowerCase() + configurationPostFix.substring(1);
 }
 
 group = project.modGroup
@@ -478,9 +487,10 @@ javadoc {it ->
     })
 }
 
-task packageJavadoc(type: Jar) {
-    from javadoc
-    classifier = 'javadoc'
+task packageJavadoc(type: Jar) { task ->
+    task.dependsOn javadoc
+    task.from javadoc
+    task.classifier = 'javadoc'
 }
 
 project.tasks.build.dependsOn sourcesJar
