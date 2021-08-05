@@ -92,7 +92,14 @@ sourceSetAdditionalResourceDirectories.put("main", newSet("src/datagen/generated
 sourceSetExcludedResourceDefinitions.put("main", newSet(".cache"))
 sourceSetIncludedResourceDefinitions.put("main", newSet("**/**"))
 
-void loadSourceSetConfiguration(Project project, String sourceSetName) {
+void loadSourceSetConfiguration(Project project, String sourceSetName
+                                , HashMap<String, Set<String>> sourceSetConfigurationDependencies
+                                , HashMap<String, Set<String>> sourceSetSourceSetDependencies
+                                , HashMap<String, Set<String>> sourceSetAdditionalResourceDirectories
+                                , HashMap<String, Set<String>> sourceSetExcludedResourceDefinitions
+                                , HashMap<String, Set<String>> sourceSetIncludedResourceDefinitions
+                                , HashMap<String, String> sourceSetClassifiers
+) {
     def configurationDependenciesPropertyName = sourceSetName + "ConfigurationDependencies"
     def sourceSetDependenciesPropertyName = sourceSetName + "SourceSetDependencies"
     def additionalResourcesPropertyName = sourceSetName + "ResourceDirectories"
@@ -140,14 +147,38 @@ if (project.hasProperty("extendDefaultSourceSetConfiguration") && project.extend
     additionalAvailableSourceSets.forEach(customSourceSetName -> {
         project.logger.lifecycle "Loading additional source set: ${customSourceSetName}"
 
-        loadSourceSetConfiguration(project, customSourceSetName);
+        loadSourceSetConfiguration(project, customSourceSetName,
+                sourceSetConfigurationDependencies
+                , sourceSetSourceSetDependencies
+                , sourceSetAdditionalResourceDirectories
+                , sourceSetExcludedResourceDefinitions
+                , sourceSetIncludedResourceDefinitions
+                , sourceSetClassifiers);
     })
 
     if (projectHasApi) {
-        loadSourceSetConfiguration(project, "api");
+        loadSourceSetConfiguration(project, "api",
+                sourceSetConfigurationDependencies
+                , sourceSetSourceSetDependencies
+                , sourceSetAdditionalResourceDirectories
+                , sourceSetExcludedResourceDefinitions
+                , sourceSetIncludedResourceDefinitions
+                , sourceSetClassifiers);
     }
-    loadSourceSetConfiguration(project, "main");
-    loadSourceSetConfiguration(project, "test");
+    loadSourceSetConfiguration(project, "main",
+            sourceSetConfigurationDependencies
+            , sourceSetSourceSetDependencies
+            , sourceSetAdditionalResourceDirectories
+            , sourceSetExcludedResourceDefinitions
+            , sourceSetIncludedResourceDefinitions
+            , sourceSetClassifiers);
+    loadSourceSetConfiguration(project, "test",
+            sourceSetConfigurationDependencies
+            , sourceSetSourceSetDependencies
+            , sourceSetAdditionalResourceDirectories
+            , sourceSetExcludedResourceDefinitions
+            , sourceSetIncludedResourceDefinitions
+            , sourceSetClassifiers);
 }
 
 availableSourceSets.forEach(sourceSetName -> {
