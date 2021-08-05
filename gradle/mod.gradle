@@ -45,13 +45,6 @@ HashSet<String> newSet(String... members) {
     return set;
 }
 
-String getConfigurationName(String sourceSetName, String configurationPostFix) {
-    if (sourceSetName != "main")
-        return sourceSetName + configurationPostFix;
-
-    return configurationPostFix.substring(0, 1).toLowerCase() + configurationPostFix.substring(1);
-}
-
 group = project.modGroup
 version = project.exactMinecraftVersion + "-" + (System.getenv().containsKey("Version") ? System.getenv("Version") : project.modVersion)
 archivesBaseName = project.modId
@@ -99,7 +92,7 @@ sourceSetAdditionalResourceDirectories.put("main", newSet("src/datagen/generated
 sourceSetExcludedResourceDefinitions.put("main", newSet(".cache"))
 sourceSetIncludedResourceDefinitions.put("main", newSet("**/**"))
 
-ext.loadSourceSetConfiguration = {(project, sourceSetName) -> {
+void loadSourceSetConfiguration(Project project, String sourceSetName) {
     def configurationDependenciesPropertyName = sourceSetName + "ConfigurationDependencies"
     def sourceSetDependenciesPropertyName = sourceSetName + "SourceSetDependencies"
     def additionalResourcesPropertyName = sourceSetName + "ResourceDirectories"
@@ -135,7 +128,7 @@ ext.loadSourceSetConfiguration = {(project, sourceSetName) -> {
     if (project.hasProperty(customClassifierPropertyName)) {
         sourceSetClassifiers.put(sourceSetName, project.customClassifierPropertyName)
     }
-}}
+}
 
 if (project.hasProperty("extendDefaultSourceSetConfiguration") && project.extendDefaultSourceSetConfiguration.toString().toLowerCase() == "true") {
     def additionalAvailableSourceSets = new HashSet<String>();
@@ -147,14 +140,14 @@ if (project.hasProperty("extendDefaultSourceSetConfiguration") && project.extend
     additionalAvailableSourceSets.forEach(customSourceSetName -> {
         project.logger.lifecycle "Loading additional source set: ${customSourceSetName}"
 
-        project.ext.loadSourceSetConfiguration(project, customSourceSetName);
+        loadSourceSetConfiguration(project, customSourceSetName);
     })
 
     if (projectHasApi) {
-        project.ext.loadSourceSetConfiguration(project, "api");
+        loadSourceSetConfiguration(project, "api");
     }
-    project.ext.loadSourceSetConfiguration(project, "main");
-    project.ext.loadSourceSetConfiguration(project, "test");
+    loadSourceSetConfiguration(project, "main");
+    loadSourceSetConfiguration(project, "test");
 }
 
 availableSourceSets.forEach(sourceSetName -> {
