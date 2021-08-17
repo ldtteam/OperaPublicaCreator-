@@ -17,6 +17,7 @@ if (projectUsesShadowing) {
     apply plugin: 'com.github.johnrengelman.shadow'
 }
 if (project.hasProperty("curseId") && project.curseId.trim() != "") {
+    project.logger.lifecycle("Enabling curse upload. Project id: " + project.curseId)
     apply plugin: 'com.matthewprenger.cursegradle'
 }
 apply plugin: 'net.minecraftforge.gradle'
@@ -39,7 +40,7 @@ repositories {
     }
 }
 
-HashSet<String> newSet(String... members) {
+static HashSet<String> newSet(String... members) {
     def set = new HashSet<String>();
     set.addAll(members);
     return set;
@@ -723,7 +724,7 @@ task setupCIWorkspace {
 }
 
 if (project.hasProperty("curseId") && project.curseId.trim() != "") {
-    curseforge { cf ->
+    project.curseforge { cf ->
         if (System.getenv().CURSEAPIKEY != null && System.getenv().CURSERELEASETYPE != null) {
             apiKey = System.getenv().CURSEAPIKEY
 
@@ -776,8 +777,6 @@ if (project.hasProperty("curseId") && project.curseId.trim() != "") {
             def changesXML = new XmlSlurper().parse(teamCityURL + "guestAuth/app/rest/changes?locator=build:(id:" + teamcity["teamcity.build.id"] + ")")
 
             def changes = changesXML.change
-            println("createChangelog: Identified " + changes.size() + " changes to be written into the changelog.")
-
             out << "# ${project.modId} Changelog \n"
             out << "## Version: _" + version + "_ \n"
 
