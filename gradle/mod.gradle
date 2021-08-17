@@ -726,25 +726,25 @@ task setupCIWorkspace {
 if (project.hasProperty("curseId") && project.curseId.trim() != "") {
     project.curseforge { cf ->
         if (System.getenv().CURSEAPIKEY != null && System.getenv().CURSERELEASETYPE != null) {
-            apiKey = System.getenv().CURSEAPIKEY
+            cf.apiKey = System.getenv().CURSEAPIKEY
 
-            project {
-                id = project.curseId
-                addGameVersion project.exactMinecraftVersion
-                changelog = file('build/changelog.md')
-                changelogType = 'markdown'
-                releaseType = System.getenv().CURSERELEASETYPE
+            project { cp ->
+                cp.id = project.curseId
+                cp.addGameVersion(project.exactMinecraftVersion)
+                cp.changelog = file('build/changelog.md')
+                cp.changelogType = 'markdown'
+                cp.releaseType = System.getenv().CURSERELEASETYPE
 
                 if (!project.additionalMinecraftVersions.trim().isEmpty()) {
                     project.additionalMinecraftVersions.split(",").each { v ->
-                        addGameVersion v
+                        cp.addGameVersion(v)
                     }
                 }
 
                 if (projectUsesShadowing) {
-                    mainArtifact shadowJar
+                    cp.mainArtifact(shadowJar)
                 } else {
-                    mainArtifact jar
+                    cp.mainArtifact(jar)
                 }
 
                 publishableSourceSets.forEach(sourceSetName -> {
@@ -757,11 +757,11 @@ if (project.hasProperty("curseId") && project.curseId.trim() != "") {
                         sourceTaskName = "sourcesJar"
                     }
 
-                    cf.addArtifact(project.tasks[javaDocTaskName])
+                    cp.addArtifact(project.tasks[javaDocTaskName])
                     if (sourceSetName != "main" || projectUsesShadowing) {
-                        cf.addArtifact(project.tasks[jarTaskName])
+                        cp.addArtifact(project.tasks[jarTaskName])
                     }
-                    cf.addArtifact(project.tasks[sourceTaskName])
+                    cp.addArtifact(project.tasks[sourceTaskName])
                 })
             }
         }
