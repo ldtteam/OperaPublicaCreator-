@@ -268,7 +268,7 @@ minecraft {
 
     runs {
         client {
-            workingDirectory project.file('run')
+            workingDirectory project.file('runClient')
             property 'forge.logging.markers', ''
             property 'forge.logging.console.level', 'info'
             mods { n ->
@@ -281,7 +281,7 @@ minecraft {
         }
 
         server {
-            workingDirectory project.file('run')
+            workingDirectory project.file('runServer')
             property 'forge.logging.markers', ''
             property 'forge.logging.console.level', 'info'
             mods { n ->
@@ -294,7 +294,7 @@ minecraft {
         }
 
         data {
-            workingDirectory project.file('run')
+            workingDirectory project.file('runData')
             property 'forge.logging.markers', ''
             property 'forge.logging.console.level', 'info'
             args '--all', '--output', file("src/datagen/generated/${project.modId}"),
