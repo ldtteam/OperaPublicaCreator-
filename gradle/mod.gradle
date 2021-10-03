@@ -1,3 +1,4 @@
+import java.util.function.Consumer
 import java.util.function.Predicate
 
 if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLowerCase() == "true") {
@@ -110,27 +111,52 @@ void loadSourceSetConfiguration(Project project, String sourceSetName
 
     if (project.hasProperty(configurationDependenciesPropertyName)) {
         sourceSetConfigurationDependencies.putIfAbsent(sourceSetName, new HashSet<String>())
-        Arrays.stream(project[configurationDependenciesPropertyName].split(";")).forEach(sourceSetConfigurationDependencies.get(sourceSetName)::add)
+        Arrays.stream(project[configurationDependenciesPropertyName].split(";")).forEach(new Consumer<String>() {
+            @Override
+            void accept(final String o) {
+                sourceSetConfigurationDependencies.get(sourceSetName).add(o)
+            }
+        })
     }
 
     if (project.hasProperty(sourceSetDependenciesPropertyName)) {
         sourceSetSourceSetDependencies.putIfAbsent(sourceSetName, new HashSet<String>())
-        Arrays.stream(project[sourceSetDependenciesPropertyName].split(";")).forEach(sourceSetSourceSetDependencies.get(sourceSetName)::add)
+        Arrays.stream(project[sourceSetDependenciesPropertyName].split(";")).forEach(new Consumer<String>() {
+            @Override
+            void accept(final String o) {
+                sourceSetSourceSetDependencies.get(sourceSetName).add(o)
+            }
+        })
     }
 
     if (project.hasProperty(additionalResourcesPropertyName)) {
         sourceSetAdditionalResourceDirectories.putIfAbsent(sourceSetName, new HashSet<String>())
-        Arrays.stream(project[additionalResourcesPropertyName].split(";")).forEach(sourceSetAdditionalResourceDirectories.get(sourceSetName)::add)
+        Arrays.stream(project[additionalResourcesPropertyName].split(";")).forEach(new Consumer<String>() {
+            @Override
+            void accept(final String o) {
+                sourceSetAdditionalResourceDirectories.get(sourceSetName).add(o)
+            }
+        })
     }
 
     if (project.hasProperty(excludeResourcesPropertyName)) {
         sourceSetExcludedResourceDefinitions.putIfAbsent(sourceSetName, new HashSet<String>())
-        Arrays.stream(project[excludeResourcesPropertyName].split(";")).forEach(sourceSetExcludedResourceDefinitions.get(sourceSetName)::add)
+        Arrays.stream(project[excludeResourcesPropertyName].split(";")).forEach(new Consumer<String>() {
+            @Override
+            void accept(final String o) {
+                sourceSetExcludedResourceDefinitions.get(sourceSetName).add(o)
+            }
+        })
     }
 
     if (project.hasProperty(includeResourcesPropertyName)) {
         sourceSetIncludedResourceDefinitions.putIfAbsent(sourceSetName, new HashSet<String>())
-        Arrays.stream(project[includeResourcesPropertyName].split(";")).forEach(sourceSetIncludedResourceDefinitions.get(sourceSetName)::add)
+        Arrays.stream(project[includeResourcesPropertyName].split(";")).forEach(new Consumer<String>() {
+            @Override
+            void accept(final String o) {
+                sourceSetIncludedResourceDefinitions.get(sourceSetName).add(o)
+            }
+        })
     }
 
     if (project.hasProperty(customClassifierPropertyName)) {
