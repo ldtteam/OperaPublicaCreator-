@@ -109,27 +109,27 @@ void loadSourceSetConfiguration(Project project, String sourceSetName
     def customClassifierPropertyName = sourceSetName + "Classifier"
 
     if (project.hasProperty(configurationDependenciesPropertyName)) {
-        sourceSetConfigurationDependencies.computeIfAbsent(sourceSetName, newName -> new HashSet<String>())
+        sourceSetConfigurationDependencies.putIfAbsent(sourceSetName, new HashSet<String>())
         Arrays.stream(project[configurationDependenciesPropertyName].split(";")).forEach(sourceSetConfigurationDependencies.get(sourceSetName)::add)
     }
 
     if (project.hasProperty(sourceSetDependenciesPropertyName)) {
-        sourceSetSourceSetDependencies.computeIfAbsent(sourceSetName, newName -> new HashSet<String>())
+        sourceSetSourceSetDependencies.putIfAbsent(sourceSetName, new HashSet<String>())
         Arrays.stream(project[sourceSetDependenciesPropertyName].split(";")).forEach(sourceSetSourceSetDependencies.get(sourceSetName)::add)
     }
 
     if (project.hasProperty(additionalResourcesPropertyName)) {
-        sourceSetAdditionalResourceDirectories.computeIfAbsent(sourceSetName, newName -> new HashSet<String>())
+        sourceSetAdditionalResourceDirectories.putIfAbsent(sourceSetName, new HashSet<String>())
         Arrays.stream(project[additionalResourcesPropertyName].split(";")).forEach(sourceSetAdditionalResourceDirectories.get(sourceSetName)::add)
     }
 
     if (project.hasProperty(excludeResourcesPropertyName)) {
-        sourceSetExcludedResourceDefinitions.computeIfAbsent(sourceSetName, newName -> new HashSet<String>())
+        sourceSetExcludedResourceDefinitions.putIfAbsent(sourceSetName, new HashSet<String>())
         Arrays.stream(project[excludeResourcesPropertyName].split(";")).forEach(sourceSetExcludedResourceDefinitions.get(sourceSetName)::add)
     }
 
     if (project.hasProperty(includeResourcesPropertyName)) {
-        sourceSetIncludedResourceDefinitions.computeIfAbsent(sourceSetName, newName -> new HashSet<String>())
+        sourceSetIncludedResourceDefinitions.putIfAbsent(sourceSetName, new HashSet<String>())
         Arrays.stream(project[includeResourcesPropertyName].split(";")).forEach(sourceSetIncludedResourceDefinitions.get(sourceSetName)::add)
     }
 
