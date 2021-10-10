@@ -1140,6 +1140,7 @@ if (opc.isFeatureEnabled("crowdInTranslationManagement") && opc.hasPropertySet("
 
         tasks.crowdinCopyProjectTranslations.dependsOn crowdinDownloadProjectTranslation
         tasks.processResources.dependsOn normalizeTranslationFilesToRuntimeDir
+        tasks.sourcesJar.dependsOn normalizeTranslationFilesToRuntimeDir
     }
     else
     {
