@@ -26,6 +26,30 @@ buildscript {
 }
 
 ext.opc = [
+        splitVersionNumber: { String versionNumber ->
+            return versionNumber.split("\\.");
+        },
+
+        buildVersionNumberWithOffset: { String sourceVersionNumber, String currentMCVersion, String relativeMCVersion, int versionElementIndex, int mcVersionElementIndex ->
+            String[] sourceVersionElements = opc.splitVersionNumber(sourceVersionNumber);
+            String[] currentMCVersionElements = opc.splitVersionNumber(currentMCVersion);
+            String[] relativeMCVersionElements = opc.splitVersionNumber(relativeMCVersion);
+
+            int mcVersion = Integer.parseInt(currentMCVersionElements[mcVersionElementIndex])
+            int relativeMcVersion = Integer.parseInt(relativeMCVersionElements[mcVersionElementIndex])
+            int offset = mcVersion - relativeMcVersion;
+
+            String version = "";
+            for (i in 0..<sourceVersionElements.length) {
+                if (i != versionElementIndex)
+                    version += sourceVersionElements[i] + ".";
+                else
+                    version += ((Integer.parseInt(sourceVersionElements[i]) + offset).toString()) + "."
+            }
+
+            return version;
+        },
+
         getEnvironmentPropertyName: { String propertyName ->
             String[] propertyNameElements = propertyName.split("(?=\\p{Upper})");
             return String.join("_", propertyNameElements).toUpperCase();
@@ -39,6 +63,16 @@ ext.opc = [
             String environmentPropertyName = opc.getEnvironmentPropertyName(propertyName);
             return System.getenv().containsKey(environmentPropertyName) ? System.getenv().get(environmentPropertyName).toString().trim() : ""
         },
+
+        getIntProperty: { String propertyName ->
+            if (project.hasProperty(propertyName) && project.getProperty(propertyName).toString().trim() != "") {
+                return Integer.parseInt(project.getProperty(propertyName).toString().trim())
+            }
+
+            String environmentPropertyName = opc.getEnvironmentPropertyName(propertyName);
+            return System.getenv().containsKey(environmentPropertyName) ? Integer.parseInt(System.getenv().get(environmentPropertyName).toString().trim()) : 0
+        },
+
 
         getStringListProperty: { String propertyName ->
             if (!opc.hasPropertySet(propertyName)) {
@@ -126,7 +160,25 @@ ext.git.repository = org.ajoberstar.grgit.Grgit.open(currentDir: file('.'))
 ext.git.branch = git.repository.branch.getCurrent()
 
 group = project.modGroup
-version = project.exactMinecraftVersion + "-" + (System.getenv().containsKey("Version") ? System.getenv("Version") : project.modVersion)
+
+if (opc.isFeatureEnabled("MCVersionBasedVersioning")
+        && opc.hasPropertySet("mcVersionElementIndex")
+        && opc.hasPropertySet("sourceVersionElementIndex")
+        && opc.hasPropertySet("sourceVersionName")) {
+    logger.lifecycle("MC based versioning active")
+
+    version = opc.buildVersionNumberWithOffset(
+            (System.getenv().containsKey("Version") ? System.getenv("Version") : project.modVersion),
+            project.exactMinecraftVersion,
+            opc.getProperty("sourceVersionName"),
+            opc.getIntProperty("sourceVersionElementIndex"),
+            opc.getIntProperty("mcVersionElementIndex")
+    )
+}
+else
+{
+    version = project.exactMinecraftVersion + "-" + (System.getenv().containsKey("Version") ? System.getenv("Version") : project.modVersion)
+}
 archivesBaseName = project.modId
 
 project.logger.lifecycle("Starting Gradle build for: " + project.modId + " with version: " + project.version)
@@ -855,7 +907,9 @@ task setupCIWorkspace {
     }
 }
 
-if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId") && (opc.hasPropertySet("curseApiKey") || opc.hasPropertySet("CURSEAPIKEY"))) {
+if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
+        && (opc.hasPropertySet("curseApiKey") || opc.hasPropertySet("CURSEAPIKEY"))
+        && (opc.hasPropertySet("curseReleaseType") || opc.hasPropertySet("CURSERELEASETYPE"))) {
     project.curseforge { cf ->
         cf.apiKey = opc.hasPropertySet("curseApiKey") ? opc.getProperty("curseApiKey") : opc.getProperty("CURSEAPIKEY")
 
@@ -864,7 +918,7 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId") && (opc.hasPr
             cp.addGameVersion(project.exactMinecraftVersion)
             cp.changelog = file('build/changelog.md')
             cp.changelogType = 'markdown'
-            cp.releaseType = System.getenv().CURSERELEASETYPE
+            cp.releaseType = opc.hasPropertySet("curseReleaseType") ? opc.getProperty("curseReleaseType") : opc.getProperty("CURSERELEASETYPE")
 
             opc.getStringListProperty("additionalMinecraftVersions").each { v ->
                 cp.addGameVersion(v)
@@ -1116,3 +1170,5 @@ if (project.file("gradle/local.gradle").exists()) {
     project.logger.lifecycle "Loading additional configuration from: ${project.file("gradle/local.gradle").path}"
     apply from: "gradle/local.gradle"
 }
+
+project.getLogger().lifecycle("Loaded remote build.gradle with version: " + project.version)
