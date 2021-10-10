@@ -1,8 +1,80 @@
 import java.util.function.Consumer
-import java.util.function.Predicate
+import java.util.regex.Pattern
 
-if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLowerCase() == "true") {
-    apply plugin: 'de.undercouch.download'
+buildscript {
+    repositories {
+        maven { url = 'https://files.minecraftforge.net/maven' }
+        mavenLocal()
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+        maven {
+            name = 'ajoberstar-backup'
+            url = 'https://ajoberstar.org/bintray-backup/'
+        }
+    }
+    dependencies {
+        classpath "net.minecraftforge.gradle:ForgeGradle:5.1.+"
+        classpath "gradle.plugin.com.github.jengelman.gradle.plugins:shadow:7.0.0"
+        classpath "gradle.plugin.com.matthewprenger:CurseGradle:1.4.0"
+        classpath "de.undercouch:gradle-download-task:4.1.2"
+        classpath "org.zaproxy.gradle:gradle-plugin-crowdin:0.2.1"
+        classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:3.3"
+        classpath 'org.ajoberstar:grgit:3.3'
+    }
+}
+
+ext.opc = [
+        getEnvironmentPropertyName: { String propertyName ->
+            String[] propertyNameElements = propertyName.split("(?=\\p{Upper})");
+            return String.join("_", propertyNameElements).toUpperCase();
+        },
+
+        getProperty: { String propertyName ->
+            if (project.hasProperty(propertyName) && project.getProperty(propertyName).toString().trim() != "") {
+                return project.getProperty(propertyName).toString().trim()
+            }
+
+            String environmentPropertyName = opc.getEnvironmentPropertyName(propertyName);
+            return System.getenv().containsKey(environmentPropertyName) ? System.getenv().get(environmentPropertyName).toString().trim() : ""
+        },
+
+        getStringListProperty: { String propertyName ->
+            if (!opc.hasPropertySet(propertyName)) {
+                return new String[0];
+            }
+
+            String propertyValue = opc.getProperty(propertyName);
+            return propertyValue.split(";")
+        },
+
+        hasPropertySet: { String propertyName ->
+            boolean result = opc.getProperty(propertyName) != "";
+            return result;
+        },
+
+        capitalize: { String word ->
+            return (word.length() == 0 ? "" : word.substring(0,1).toUpperCase() + (word.length() == 1 ? "" : word.substring(1)))
+        },
+
+        isFeatureEnabled: { String featureName ->
+            String propertyValue = opc.getProperty("uses" + opc.capitalize(featureName));
+            boolean enabled = propertyValue.toLowerCase() == "true";
+            return enabled;
+        }
+]
+
+if (opc.isFeatureEnabled("crowdin")) {
+    apply plugin: de.undercouch.gradle.tasks.download.DownloadTaskPlugin
+}
+
+if (opc.isFeatureEnabled("crowdInTranslationManagement")) {
+    apply plugin: org.zaproxy.gradle.crowdin.CrowdinPlugin
+}
+
+if (opc.isFeatureEnabled("sonarQube")) {
+    apply plugin: org.sonarqube.gradle.SonarQubePlugin
 }
 
 apply plugin: 'java-library'
@@ -15,13 +87,12 @@ if ((project.hasProperty("useShadowJar") && project.useShadowJar.toString().toLo
 }
 
 if (projectUsesShadowing) {
-    apply plugin: 'com.github.johnrengelman.shadow'
+    apply plugin: com.github.jengelman.gradle.plugins.shadow.ShadowPlugin
 }
-if (project.hasProperty("curseId") && project.curseId.trim() != "") {
-    project.logger.lifecycle("Enabling curse upload. Project id: " + project.curseId)
-    apply plugin: 'com.matthewprenger.cursegradle'
+if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId") && (opc.hasPropertySet("curseApiKey") || opc.hasPropertySet("CURSEAPIKEY"))) {
+    apply plugin: com.matthewprenger.cursegradle.CurseGradlePlugin
 }
-apply plugin: 'net.minecraftforge.gradle'
+apply plugin: net.minecraftforge.gradle.userdev.UserDevPlugin
 apply plugin: 'jacoco'
 apply plugin: 'maven-publish'
 apply plugin: 'idea'
@@ -46,6 +117,13 @@ static HashSet<String> newSet(String... members) {
     set.addAll(members);
     return set;
 }
+
+ext.git = [
+        repositry: new Object(),
+        branch: new Object()
+]
+ext.git.repository = org.ajoberstar.grgit.Grgit.open(currentDir: file('.'))
+ext.git.branch = git.repository.branch.getCurrent()
 
 group = project.modGroup
 version = project.exactMinecraftVersion + "-" + (System.getenv().containsKey("Version") ? System.getenv("Version") : project.modVersion)
@@ -288,50 +366,77 @@ if (project.hasProperty("runtimeSourceSets")) {
     Arrays.stream(project.runtimeSourceSets.split(";")).forEach(sourceSetName -> runtimeSourceSets.add(sourceSetName as String))
 }
 
-minecraft {
+def libraryConfigs = new HashSet<org.gradle.api.artifacts.Configuration>();
+configurations { configContainer ->
+    runtimeSourceSets.each { sourceSetName ->
+        def configName = sourceSetName == "main" ? "library" : sourceSetName + "Library";
+        def implementationConfigName = sourceSetName == "main" ? "implementation" : sourceSetName + "Implementation"
+
+        def libraryConfig = configContainer.maybeCreate(configName)
+        def implementationConfig = configContainer.maybeCreate(implementationConfigName)
+
+        implementationConfig.extendsFrom libraryConfig
+
+        libraryConfigs.add(libraryConfig);
+    }
+}
+
+project.minecraft {
     mappings channel: project.mappingsChannel, version: project.mappingsVersion
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
-    runs {
-        client {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', ''
-            property 'forge.logging.console.level', 'info'
-            mods { n ->
-                def mod = n.create(project.modId);
-                runtimeSourceSets.forEach(sourceSetName -> {
-                    def sourceSet = project.sourceSets[sourceSetName]
-                    mod.source(sourceSet)
-                })
-            }
+    runs { runSpecContainer ->
+        def clientSpec = runSpecContainer.maybeCreate("client")
+        clientSpec.workingDirectory project.file('run')
+        clientSpec.property 'forge.logging.markers', ''
+        clientSpec.property 'forge.logging.console.level', 'info'
+        clientSpec.mods { n ->
+            def mod = n.create(project.modId);
+            runtimeSourceSets.forEach(sourceSetName -> {
+                def sourceSet = project.sourceSets[sourceSetName]
+                mod.source(sourceSet)
+            })
         }
 
-        server {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', ''
-            property 'forge.logging.console.level', 'info'
-            mods { n ->
-                def mod = n.create(project.modId);
-                runtimeSourceSets.forEach(sourceSetName -> {
-                    def sourceSet = project.sourceSets[sourceSetName]
-                    mod.source(sourceSet)
-                })
-            }
+        def serverSpec = runSpecContainer.maybeCreate("server")
+        serverSpec.workingDirectory project.file('run')
+        serverSpec.property 'forge.logging.markers', ''
+        serverSpec.property 'forge.logging.console.level', 'info'
+        serverSpec.mods { n ->
+            def mod = n.create(project.modId);
+            runtimeSourceSets.forEach(sourceSetName -> {
+                def sourceSet = project.sourceSets[sourceSetName]
+                mod.source(sourceSet)
+            })
         }
 
-        data {
-            workingDirectory project.file('run')
-            property 'forge.logging.markers', ''
-            property 'forge.logging.console.level', 'info'
-            args '--all', '--output', file("src/datagen/generated/${project.modId}"),
+        if (opc.isFeatureEnabled("datagen")) {
+            def dataSpec = runSpecContainer.maybeCreate("data")
+            dataSpec.workingDirectory project.file('run')
+            dataSpec.property 'forge.logging.markers', ''
+            dataSpec.property 'forge.logging.console.level', 'info'
+            dataSpec.args '--all', '--output', file("src/datagen/generated/${project.modId}"),
                     '--mod', "${project.modId}".toString(),
                     '--existing', sourceSets.main.resources.srcDirs[0]
-            mods { n ->
+            dataSpec.mods { n ->
                 def mod = n.create(project.modId);
                 runtimeSourceSets.forEach(sourceSetName -> {
                     def sourceSet = project.sourceSets[sourceSetName]
                     mod.source(sourceSet)
                 })
+            }
+        }
+
+        project.afterEvaluate {
+            def paths = new HashSet<String>();
+            libraryConfigs.each { config ->
+                config.copyRecursive().resolve().collect { it.absolutePath.toString() }.each {path -> paths.add(path)}
+            }
+
+            runSpecContainer.each {runSpec ->
+                runSpec.lazyToken('minecraft_classpath') {
+                    paths.join(File.pathSeparator)
+                }
             }
         }
     }
@@ -495,6 +600,7 @@ additionalSourceSetJars.forEach(additionalSourceSet -> {
     javaDocTask.setClasspath(sourceSets[additionalSourceSet].getCompileClasspath())
     javaDocTask.group 'documentation'
     javaDocTask.source = sourceSets[additionalSourceSet].allJava
+    javaDocTask.destinationDir = project.buildDir.toPath().resolve("additional").resolve("javadoc").resolve(additionalSourceSet).toFile()
 
     org.gradle.api.tasks.bundling.Jar javadocJarTask = project.tasks.create(additionalSourceSetPackageJavaDocTaskName, org.gradle.api.tasks.bundling.Jar.class)
     javadocJarTask.dependsOn javaDocTask
@@ -749,46 +855,51 @@ task setupCIWorkspace {
     }
 }
 
-if (project.hasProperty("curseId") && project.curseId.trim() != "") {
+if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId") && (opc.hasPropertySet("curseApiKey") || opc.hasPropertySet("CURSEAPIKEY"))) {
     project.curseforge { cf ->
-        if (System.getenv().CURSEAPIKEY != null && System.getenv().CURSERELEASETYPE != null) {
-            cf.apiKey = System.getenv().CURSEAPIKEY
+        cf.apiKey = opc.hasPropertySet("curseApiKey") ? opc.getProperty("curseApiKey") : opc.getProperty("CURSEAPIKEY")
 
-            project { cp ->
-                cp.id = project.curseId
-                cp.addGameVersion(project.exactMinecraftVersion)
-                cp.changelog = file('build/changelog.md')
-                cp.changelogType = 'markdown'
-                cp.releaseType = System.getenv().CURSERELEASETYPE
+        project { cp ->
+            cp.id = opc.getProperty("curseId")
+            cp.addGameVersion(project.exactMinecraftVersion)
+            cp.changelog = file('build/changelog.md')
+            cp.changelogType = 'markdown'
+            cp.releaseType = System.getenv().CURSERELEASETYPE
 
-                if (!project.additionalMinecraftVersions.trim().isEmpty()) {
-                    project.additionalMinecraftVersions.split(",").each { v ->
-                        cp.addGameVersion(v)
-                    }
+            opc.getStringListProperty("additionalMinecraftVersions").each { v ->
+                cp.addGameVersion(v)
+            }
+
+            if (projectUsesShadowing) {
+                cp.mainArtifact(shadowJar)
+            } else {
+                cp.mainArtifact(jar)
+            }
+
+            publishableSourceSets.forEach(sourceSetName -> {
+                String javaDocTaskName = sourceSetName + "PackageJavadoc"
+                String jarTaskName = sourceSetName + "Jar"
+                String sourceTaskName = sourceSetName + "Sources"
+                if (sourceSetName == "main") {
+                    javaDocTaskName = "packageJavadoc"
+                    jarTaskName = "jar"
+                    sourceTaskName = "sourcesJar"
                 }
 
-                if (projectUsesShadowing) {
-                    cp.mainArtifact(shadowJar)
-                } else {
-                    cp.mainArtifact(jar)
+                cp.addArtifact(project.tasks[javaDocTaskName])
+                if (sourceSetName != "main" || projectUsesShadowing) {
+                    cp.addArtifact(project.tasks[jarTaskName])
                 }
+                cp.addArtifact(project.tasks[sourceTaskName])
+            })
 
-                publishableSourceSets.forEach(sourceSetName -> {
-                    String javaDocTaskName = sourceSetName + "PackageJavadoc"
-                    String jarTaskName = sourceSetName + "Jar"
-                    String sourceTaskName = sourceSetName + "Sources"
-                    if (sourceSetName == "main") {
-                        javaDocTaskName = "packageJavadoc"
-                        jarTaskName = "jar"
-                        sourceTaskName = "sourcesJar"
-                    }
-
-                    cp.addArtifact(project.tasks[javaDocTaskName])
-                    if (sourceSetName != "main" || projectUsesShadowing) {
-                        cp.addArtifact(project.tasks[jarTaskName])
-                    }
-                    cp.addArtifact(project.tasks[sourceTaskName])
-                })
+            cp.relations { relSpec ->
+                opc.getStringListProperty("requiredCurseDependencies").each {depId ->
+                    relSpec.requiredDependency depId
+                }
+                opc.getStringListProperty("optionalCurseDependencies").each {depId ->
+                    relSpec.optionalDependency depId
+                }
             }
         }
     }
@@ -805,6 +916,10 @@ if (project.hasProperty("curseId") && project.curseId.trim() != "") {
             def changes = changesXML.change
             out << "# ${project.modId} Changelog \n"
             out << "## Version: _" + version + "_ \n"
+
+            if (opc.hasPropertySet("customChangelogHeader")) {
+                out << opc.getProperty("customChangelogHeader")
+            }
 
             if (changes.size() > 0) {
                 for (int i = 0; i < changes.size(); i++) {
@@ -893,12 +1008,95 @@ tasks.withType(org.gradle.api.tasks.Copy.class, {task ->
     task.duplicatesStrategy 'exclude'
 })
 
+tasks.withType(org.gradle.api.tasks.javadoc.Javadoc.class, {task ->
+    if (!task.name.toLowerCase().contains("api")) {
+        task.options.addStringOption('Xdoclint:none', '-quiet')
+    }
+})
+
 tasks.withType(Jar.class, {task ->
     task.duplicatesStrategy 'exclude'
 })
 
 tasks.withType(GenerateModuleMetadata) {
     enabled = false
+}
+
+if (opc.isFeatureEnabled("crowdInTranslationManagement") && opc.hasPropertySet("crowdInDownloadDirectory")) {
+    if (opc.hasPropertySet("crowdInApiKey")) {
+        project.crowdin { crowdinSpec ->
+            crowdinSpec.credentials { credentialsSpec ->
+                credentialsSpec.getToken().set(opc.getProperty("crowdInApiKey"))
+            }
+
+            crowdinSpec.configuration { configurationSpec ->
+                configurationSpec.getFile().set(file("gradle/crowdin.yml"))
+                configurationSpec.tokens.put("%branch_name%", git.branch.name)
+                configurationSpec.tokens.put("%crowdin_download_path%", opc.getProperty("crowdInDownloadDirectory"))
+            }
+        }
+
+        project.tasks.crowdinBuildProjectTranslation { taskSpec ->
+            taskSpec.getWaitForBuilds().set(true)
+        }
+
+        def performsTranslationsBuild = false;
+        if (!opc.isFeatureEnabled("crowdInBuildingWithFilteredBranches") || (opc.hasPropertySet("crowdInBuildingWithFilteredBranchesSpec") && Pattern.matches(opc.getProperty("crowdInBuildingWithFilteredBranchesSpec"), git.branch.name)))
+        {
+            tasks.processResources.dependsOn crowdinBuildProjectTranslation
+            performsTranslationsBuild = true;
+        }
+        if (!opc.isFeatureEnabled("crowdInUploadWithFilteredBranches") || (opc.hasPropertySet("crowdInUploadWithFilteredBranchesSpec") && Pattern.matches(opc.getProperty("crowdInUploadWithFilteredBranchesSpec"), git.branch.name)))
+        {
+            tasks.processResources.dependsOn crowdinUploadSourceFiles
+            if (performsTranslationsBuild) {
+                tasks.crowdinBuildProjectTranslation.dependsOn crowdinUploadSourceFiles
+            }
+        }
+
+        task deleteTranslationFilesInBuildDir(type: Delete) {
+            group "crowdin"
+            dependsOn crowdinCopyProjectTranslations
+            delete project.buildDir.toPath().resolve("temp").resolve("translations")
+            followSymlinks = true
+        }
+
+        task normalizeTranslationFilesToBuildDir(type: Copy) {
+            group "crowdin"
+            dependsOn deleteTranslationFilesInBuildDir
+            from project.rootDir.toPath().resolve(opc.getProperty("crowdInDownloadDirectory")).toFile()
+            into project.buildDir.toPath().resolve("temp").resolve("translations")
+            rename { String name -> name.toLowerCase() }
+        }
+
+        task deleteTranslationFilesInRuntimeDir(type: Delete) {
+            group "crowdin"
+            dependsOn normalizeTranslationFilesToBuildDir
+            delete project.rootDir.toPath().resolve(opc.getProperty("crowdInDownloadDirectory")).toFile()
+            followSymlinks = true
+        }
+
+        task normalizeTranslationFilesToRuntimeDir(type: Copy) {
+            group "crowdin"
+            dependsOn deleteTranslationFilesInRuntimeDir
+            from project.buildDir.toPath().resolve("temp").resolve("translations")
+            into project.rootDir.toPath().resolve(opc.getProperty("crowdInDownloadDirectory")).toFile()
+            rename { String name -> name.toLowerCase() }
+        }
+
+        tasks.crowdinCopyProjectTranslations.dependsOn crowdinDownloadProjectTranslation
+        tasks.processResources.dependsOn normalizeTranslationFilesToRuntimeDir
+    }
+    else
+    {
+        project.afterEvaluate {
+            project.logger.lifecycle "No CrowdIn API Key was provided. Can not sync translations!"
+        }
+    }
+}
+else
+{
+    project.logger.lifecycle "CrowdIn disabled."
 }
 
 fileTree('gradle') {
@@ -910,11 +1108,11 @@ fileTree('gradle') {
     if (details.file.name.contains("local"))
         return
 
-    project.logger.lifecycle "Loading additoinal configuration from: ${details.file.path}"
+    project.logger.lifecycle "Loading additional configuration from: ${details.file.path}"
     apply from: details.file.path
 }
 
 if (project.file("gradle/local.gradle").exists()) {
-    project.logger.lifecycle "Loading additoinal configuration from: ${project.file("gradle/local.gradle").path}"
+    project.logger.lifecycle "Loading additional configuration from: ${project.file("gradle/local.gradle").path}"
     apply from: "gradle/local.gradle"
 }
