@@ -80,7 +80,10 @@ ext.opc = [
             }
 
             String propertyValue = opc.getProperty(propertyName);
-            return propertyValue.split(";")
+            String[] values = propertyValue.split(";")
+            List<String> listValues = Arrays.asList(values);
+            listValues.removeIf({value -> value == null || value.trim().isEmpty() })
+            return listValues.toArray(String[]::new);
         },
 
         hasPropertySet: { String propertyName ->
@@ -949,12 +952,19 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
                 cp.addArtifact(project.tasks[sourceTaskName])
             })
 
-            cp.relations { relSpec ->
-                opc.getStringListProperty("requiredCurseDependencies").each {depId ->
-                    relSpec.requiredDependency depId
-                }
-                opc.getStringListProperty("optionalCurseDependencies").each {depId ->
-                    relSpec.optionalDependency depId
+            if (opc.hasPropertySet("requiredCurseDependencies") || opc.hasPropertySet("optionalCurseDependencies")) {
+                cp.relations { relSpec ->
+                    if (opc.hasPropertySet("requiredCurseDependencies")) {
+                        opc.getStringListProperty("requiredCurseDependencies").each {depId ->
+                            relSpec.requiredDependency depId
+                        }
+                    }
+
+                    if (opc.hasPropertySet("optionalCurseDependencies")) {
+                        opc.getStringListProperty("optionalCurseDependencies").each {depId ->
+                            relSpec.optionalDependency depId
+                        }
+                    }
                 }
             }
         }
