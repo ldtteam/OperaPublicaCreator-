@@ -1155,6 +1155,19 @@ if (opc.isFeatureEnabled("crowdInTranslationManagement") && opc.hasPropertySet("
         tasks.crowdinCopyProjectTranslations.dependsOn crowdinDownloadProjectTranslation
         tasks.processResources.dependsOn normalizeTranslationFilesToRuntimeDir
         tasks.sourcesJar.dependsOn normalizeTranslationFilesToRuntimeDir
+
+        gradle.taskGraph.whenReady { graph ->
+            if (graph.hasTask(tasks.prepareRun)) {
+                tasks.normalizeTranslationFilesToRuntimeDir.enabled = false;
+                tasks.deleteTranslationFilesInRuntimeDir.enabled = false;
+                tasks.normalizeTranslationFilesToBuildDir.enabled = false;
+                tasks.deleteTranslationFilesInBuildDir.enabled = false;
+                tasks.crowdinCopyProjectTranslations.enabled = false;
+                tasks.crowdinDownloadProjectTranslation.enabled = false;
+                tasks.crowdinBuildProjectTranslation.enabled = false;
+                tasks.crowdinUploadSourceFiles.enabled = false;
+            }
+        }
     }
     else
     {
