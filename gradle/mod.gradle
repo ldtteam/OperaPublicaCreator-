@@ -1158,7 +1158,7 @@ if (opc.isFeatureEnabled("crowdInTranslationManagement") && opc.hasPropertySet("
 
         project.afterEvaluate {
             gradle.taskGraph.whenReady { graph ->
-                if (graph.hasTask(tasks.prepareRun)) {
+                if (graph.hasTask(tasks.maybeCreate("prepareRun"))) {
                     tasks.normalizeTranslationFilesToRuntimeDir.enabled = false;
                     tasks.deleteTranslationFilesInRuntimeDir.enabled = false;
                     tasks.normalizeTranslationFilesToBuildDir.enabled = false;
