@@ -99,7 +99,7 @@ ext.opc = [
             String propertyValue = opc.getProperty("uses" + opc.capitalize(featureName));
             boolean enabled = propertyValue.toLowerCase() == "true";
             return enabled;
-        }
+        },
 ]
 
 if (opc.isFeatureEnabled("crowdin")) {
@@ -423,9 +423,16 @@ if (project.hasProperty("runtimeSourceSets")) {
     Arrays.stream(project.runtimeSourceSets.split(";")).forEach(sourceSetName -> runtimeSourceSets.add(sourceSetName as String))
 }
 
+def librarySourceSets = new HashSet<String>()
+runtimeSourceSets.addAll(librarySourceSets);
+if (project.hasProperty("librarySourceSets")) {
+    librarySourceSets.clear();
+    opc.getStringListProperty("librarySourceSets").each {String sourceSetName -> librarySourceSets.add(sourceSetName as String) }
+}
+
 def libraryConfigs = new HashSet<org.gradle.api.artifacts.Configuration>();
 configurations { configContainer ->
-    runtimeSourceSets.each { sourceSetName ->
+    librarySourceSets.each { sourceSetName ->
         def configName = sourceSetName == "main" ? "library" : sourceSetName + "Library";
         def implementationConfigName = sourceSetName == "main" ? "implementation" : sourceSetName + "Implementation"
 
@@ -1156,20 +1163,6 @@ if (opc.isFeatureEnabled("crowdInTranslationManagement") && opc.hasPropertySet("
         tasks.processResources.dependsOn normalizeTranslationFilesToRuntimeDir
         tasks.sourcesJar.dependsOn normalizeTranslationFilesToRuntimeDir
 
-        project.afterEvaluate {
-            gradle.taskGraph.whenReady { graph ->
-                if (graph.hasTask("prepareRun")) {
-                    tasks.normalizeTranslationFilesToRuntimeDir.enabled = false;
-                    tasks.deleteTranslationFilesInRuntimeDir.enabled = false;
-                    tasks.normalizeTranslationFilesToBuildDir.enabled = false;
-                    tasks.deleteTranslationFilesInBuildDir.enabled = false;
-                    tasks.crowdinCopyProjectTranslations.enabled = false;
-                    tasks.crowdinDownloadProjectTranslation.enabled = false;
-                    tasks.crowdinBuildProjectTranslation.enabled = false;
-                    tasks.crowdinUploadSourceFiles.enabled = false;
-                }
-            }
-        }
     }
     else
     {
