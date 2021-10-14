@@ -42,9 +42,12 @@ ext.opc = [
             String version = "";
             for (i in 0..<sourceVersionElements.length) {
                 if (i != versionElementIndex)
-                    version += sourceVersionElements[i] + ".";
+                    version += sourceVersionElements[i];
                 else
-                    version += ((Integer.parseInt(sourceVersionElements[i]) + offset).toString()) + "."
+                    version += ((Integer.parseInt(sourceVersionElements[i]) + offset).toString())
+
+                if (i != sourceVersionElements.length - 1)
+                    version += "."
             }
 
             return version;
@@ -185,6 +188,9 @@ else
     version = project.exactMinecraftVersion + "-" + (System.getenv().containsKey("Version") ? System.getenv("Version") : project.modVersion)
 }
 archivesBaseName = project.modId
+project.properties.file = [
+        jarVersion: project.version
+];
 
 project.logger.lifecycle("Starting Gradle build for: " + project.modId + " with version: " + project.version)
 
@@ -608,6 +614,15 @@ if (project.hasProperty("automaticModuleName")) {
 def isFMLLibrary = false;
 if (project.hasProperty("isFMLLibrary") && project.isFMLLibrary.toString().toLowerCase() == "true") {
     isFMLLibrary = true;
+}
+
+processResources {
+    outputs.upToDateWhen { false }
+
+    def props = ["version":version]
+    filesMatching ('**/mods.toml') {
+        expand project.properties
+    }
 }
 
 jar {
