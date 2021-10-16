@@ -460,6 +460,8 @@ project.minecraft {
         clientSpec.workingDirectory project.file('run')
         clientSpec.property 'forge.logging.markers', ''
         clientSpec.property 'forge.logging.console.level', 'info'
+        clientSpec.property 'mixin.env.remapRefMap', 'true'
+        clientSpec.property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
         clientSpec.mods { n ->
             def mod = n.create(project.modId);
             runtimeSourceSets.forEach(sourceSetName -> {
@@ -472,6 +474,8 @@ project.minecraft {
         serverSpec.workingDirectory project.file('run')
         serverSpec.property 'forge.logging.markers', ''
         serverSpec.property 'forge.logging.console.level', 'info'
+        serverSpec.property 'mixin.env.remapRefMap', 'true'
+        serverSpec.property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
         serverSpec.mods { n ->
             def mod = n.create(project.modId);
             runtimeSourceSets.forEach(sourceSetName -> {
@@ -485,6 +489,8 @@ project.minecraft {
             dataSpec.workingDirectory project.file('run')
             dataSpec.property 'forge.logging.markers', ''
             dataSpec.property 'forge.logging.console.level', 'info'
+            dataSpec.property 'mixin.env.remapRefMap', 'true'
+            dataSpec.property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
             dataSpec.args '--all', '--output', file("src/datagen/generated/${project.modId}"),
                     '--mod', "${project.modId}".toString(),
                     '--existing', sourceSets.main.resources.srcDirs[0]
