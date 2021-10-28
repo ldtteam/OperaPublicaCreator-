@@ -139,7 +139,7 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
 apply plugin: net.minecraftforge.gradle.userdev.UserDevPlugin
 
 if (opc.isFeatureEnabled("parchment")) {
-    apply plugin: 'org.parchmentmc.librarian.forgegradle'
+    apply plugin: org.parchmentmc.librarian.forgegradle.LibrarianForgeGradlePlugin
 }
 
 apply plugin: 'jacoco'
