@@ -476,6 +476,9 @@ project.minecraft {
                 mod.source(sourceSet)
             })
         }
+        if (opc.isFeatureEnabled("randomUsernames")) {
+            clientSpec.args '--username', 'Dev#'
+        }
 
         def serverSpec = runSpecContainer.maybeCreate("server")
         serverSpec.workingDirectory project.file('run')
