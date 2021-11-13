@@ -1014,6 +1014,7 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
 
         doLast {
             def teamCityURL = "https://buildsystem.ldtteam.com/"
+            project.rootProject.file("build/changelog.md").parent.mkdirs()
             def file = new FileOutputStream(project.rootProject.file("build/changelog.md"))
             def out = new BufferedOutputStream(file)
             def changesXML = new XmlSlurper().parse(teamCityURL + "guestAuth/app/rest/changes?locator=build:(id:" + teamcity["teamcity.build.id"] + ")")
