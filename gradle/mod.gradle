@@ -1065,6 +1065,11 @@ idea {
 
 
 if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLowerCase() == "true") {
+
+    project.logger.lifecycle "Legacy CrowdIn enabled."
+    project.logger.lifecycle "Legacy CrowdIn Key Available: " + System.getenv().containsKey("crowdinKey")
+    project.logger.lifecycle "Legacy CrowdIn online mode: " + !project.gradle.startParameter.isOffline()
+
     task downloadCrowdin() {
         ext {
             output = file('build/crowdin_raw.zip')
