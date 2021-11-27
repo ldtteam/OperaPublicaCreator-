@@ -1093,6 +1093,7 @@ if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLower
     }
 
     task crowdin(type: Zip) {
+        duplicatesStrategy = "include"
         dependsOn downloadCrowdin
         onlyIf {
             !downloadCrowdin.state.skipped
