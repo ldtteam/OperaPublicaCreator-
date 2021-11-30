@@ -449,6 +449,7 @@ configurations { configContainer ->
         def configName = sourceSetName == "main" ? "library" : sourceSetName + "Library";
         def implementationConfigName = sourceSetName == "main" ? "implementation" : sourceSetName + "Implementation"
 
+        project.getLogger().lifecycle(" > Adding configuration as library target: ${configName}...")
         def libraryConfig = configContainer.maybeCreate(configName)
         def implementationConfig = configContainer.maybeCreate(implementationConfigName)
 
