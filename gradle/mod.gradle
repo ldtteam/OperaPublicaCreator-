@@ -1,5 +1,6 @@
 import java.util.function.Consumer
 import java.util.regex.Pattern
+import groovy.json.*
 
 buildscript {
     repositories {
@@ -80,8 +81,22 @@ ext.opc = [
 
 
         getStringListProperty: { String propertyName ->
-            if (!opc.hasPropertySet(propertyName)) {
-                return new String[0];
+            if (!opc.hasRawPropertySet(propertyName)) {
+                def potentialResultList = new ArrayList<String>();
+
+                for (def i = 0; i < project.getProperties().size(); i++) {
+                    def lookupPropertyKey = propertyName + "[" + i + "]";
+                    if (!opc.hasRawPropertySet(lookupPropertyKey)) {
+                        break;
+                    }
+
+                    def lookupPropertyValue = opc.getProperty(lookupPropertyKey);
+                    if (lookupPropertyValue != "") {
+                        potentialResultList.add(lookupPropertyValue);
+                    }
+                }
+
+                return potentialResultList.toArray(String[]::new);
             }
 
             String propertyValue = opc.getProperty(propertyName);
@@ -92,6 +107,16 @@ ext.opc = [
         },
 
         hasPropertySet: { String propertyName ->
+            boolean result = opc.hasRawPropertySet(propertyName);
+
+            if (!result) {
+                return opc.hasRawPropertySet(propertyName + "[0]"); //Also check for lists.
+            }
+
+            return result;
+        },
+
+        hasRawPropertySet: { String propertyName ->
             boolean result = opc.getProperty(propertyName) != "";
             return result;
         },
@@ -1135,6 +1160,43 @@ tasks.withType(GenerateModuleMetadata) {
     enabled = false
 }
 
+if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translationMergeSources") && opc.hasPropertySet("translationMergeDestination")) {
+    task mergeTranslations {
+        doLast {
+            def translationSources = opc.getStringListProperty("translationMergeSources");
+            if (translationSources.size() >= 1) {
+                def initialSource = translationSources[0];
+                def initialFile = project.file(initialSource);
+                if (!initialFile.exists()) {
+                    throw new RuntimeException("Translation source file ${initialFile} does not exist!")
+                }
+
+                def slurper = new JsonSlurper()
+
+                def initial = slurper.parse(initialFile, 'UTF-8')
+
+                if (translationSources.size() >= 2) {
+                    for (i in 1..<translationSources.size()) {
+                        def otherSource = translationSources[0];
+                        def otherFile = project.file(otherSource);
+                        if (!otherFile.exists()) {
+                            throw new RuntimeException("Translation source file ${otherFile} does not exist!")
+                        }
+
+                        def other = slurper.parse(otherFile, 'UTF-8')
+
+                        initial += other
+                    }
+                }
+
+                project.file(opc.getProperty("translationMergeDestination")).write(JsonOutput.prettyPrint(JsonOutput.toJson(initial)), 'UTF-8')
+            }
+        }
+    }
+
+    tasks.processResources.dependsOn mergeTranslations
+}
+
 if (opc.isFeatureEnabled("crowdInTranslationManagement") && opc.hasPropertySet("crowdInDownloadDirectory")) {
     if (opc.hasPropertySet("crowdInApiKey")) {
         project.crowdin { crowdinSpec ->
@@ -1167,6 +1229,10 @@ if (opc.isFeatureEnabled("crowdInTranslationManagement") && opc.hasPropertySet("
             tasks.processResources.dependsOn crowdinUploadSourceFiles
             if (performsTranslationsBuild) {
                 tasks.crowdinBuildProjectTranslation.dependsOn crowdinUploadSourceFiles
+            }
+
+            if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translationMergeSources") && opc.hasPropertySet("translationMergeDestination")) {
+                tasks.crowdinUploadSourceFiles.dependsOn mergeTranslations
             }
         }
 
