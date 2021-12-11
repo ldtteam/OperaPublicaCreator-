@@ -132,6 +132,16 @@ ext.opc = [
         },
 ]
 
+if (project.file("gradle/configuration.gradle").exists()) {
+    project.logger.lifecycle "Loading additional configuration from: ${project.file("gradle/configuration.gradle").path}"
+    apply from: "gradle/configuration.gradle"
+}
+
+if (project.file("gradle/local.configuration.gradle").exists()) {
+    project.logger.lifecycle "Loading additional configuration from: ${project.file("gradle/local.configuration.gradle").path}"
+    apply from: "gradle/local.configuration.gradle"
+}
+
 if (opc.isFeatureEnabled("crowdin")) {
     apply plugin: de.undercouch.gradle.tasks.download.DownloadTaskPlugin
 }
@@ -1053,6 +1063,7 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
                 out << opc.getProperty("customChangelogHeader")
             }
 
+            out << "### Changes: \n"
             if (changes.size() > 0) {
                 for (int i = 0; i < changes.size(); i++) {
                     def changeDetailsURL = teamCityURL + "guestAuth/app/rest/changes/id:" + changes[i].@id.text()
@@ -1062,7 +1073,7 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
                     out << "* " + changeComment + "\n"
                 }
             } else {
-                out << "No Changes detected!"
+                out << "_No Changes detected!_"
             }
 
             out.close()
@@ -1189,7 +1200,17 @@ if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translat
                     }
                 }
 
-                project.file(opc.getProperty("translationMergeDestination")).write(JsonOutput.prettyPrint(JsonOutput.toJson(initial)), 'UTF-8')
+
+                def translationTargets = opc.getStringListProperty("translationMergeDestination");
+                for (i in 0..<translationTargets.size()) {
+                    def targetPath = translationTargets[i];
+                    def targetFile = project.file(targetPath);
+                    if (targetFile.exists()) {
+                        targetFile.delete()
+                    }
+
+                    targetFile.write(JsonOutput.prettyPrint(JsonOutput.toJson(initial)), 'UTF-8')
+                }
             }
         }
     }
