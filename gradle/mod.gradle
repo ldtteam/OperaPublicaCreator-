@@ -1056,11 +1056,11 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
             def changesXML = new XmlSlurper().parse(teamCityURL + "guestAuth/app/rest/changes?locator=build:(id:" + teamcity["teamcity.build.id"] + ")")
 
             def changes = changesXML.change
-            out << "# ${project.modId} Changelog \n"
+            out << "# ${opc.capitalize(project.modId)} Changelog \n"
             out << "## Version: _" + version + "_ \n"
 
             if (opc.hasPropertySet("customChangelogHeader")) {
-                out << opc.getProperty("customChangelogHeader")
+                out << opc.getProperty("customChangelogHeader") + "\n"
             }
 
             out << "### Changes: \n"
@@ -1310,7 +1310,12 @@ fileTree('gradle') {
     if (details.file.isDirectory())
         return
 
+    //We load local files always last.
     if (details.file.name.contains("local"))
+        return
+
+    //We skip the configuration files, they are executed before this.
+    if (details.file.name.contains("configuration"))
         return
 
     project.logger.lifecycle "Loading additional configuration from: ${details.file.path}"
