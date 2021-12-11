@@ -1184,16 +1184,18 @@ if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translat
 
                 def slurper = new JsonSlurper()
 
+                project.getLogger().lifecycle(" > Reading translations from: " + initialSource)
                 def initial = slurper.parse(initialFile, 'UTF-8')
 
                 if (translationSources.size() >= 2) {
                     for (i in 1..<translationSources.size()) {
-                        def otherSource = translationSources[0];
+                        def otherSource = translationSources[i];
                         def otherFile = project.file(otherSource);
                         if (!otherFile.exists()) {
                             throw new RuntimeException("Translation source file ${otherFile} does not exist!")
                         }
 
+                        project.getLogger().lifecycle(" > Reading translations from: " + otherSource)
                         def other = slurper.parse(otherFile, 'UTF-8')
 
                         initial += other
@@ -1209,6 +1211,7 @@ if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translat
                         targetFile.delete()
                     }
 
+                    project.getLogger().lifecycle(" > Writing translations to: " + targetPath)
                     targetFile.write(JsonOutput.prettyPrint(JsonOutput.toJson(initial)), 'UTF-8')
                 }
             }
