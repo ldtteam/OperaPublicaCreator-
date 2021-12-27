@@ -79,7 +79,6 @@ ext.opc = [
             return System.getenv().containsKey(environmentPropertyName) ? Integer.parseInt(System.getenv().get(environmentPropertyName).toString().trim()) : 0
         },
 
-
         getStringListProperty: { String propertyName ->
             if (!opc.hasRawPropertySet(propertyName)) {
                 def potentialResultList = new ArrayList<String>();
@@ -121,8 +120,7 @@ ext.opc = [
             return result;
         },
 
-        capitalize: { String word ->
-            return (word.length() == 0 ? "" : word.substring(0,1).toUpperCase() + (word.length() == 1 ? "" : word.substring(1)))
+        capitalize: { String word -> return (word.length() == 0 ? "" : word.substring(0,1).toUpperCase() + (word.length() == 1 ? "" : word.substring(1)))
         },
 
         isFeatureEnabled: { String featureName ->

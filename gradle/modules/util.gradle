@@ -1,0 +1,101 @@
+ext.opc = [
+        splitVersionNumber: { String versionNumber ->
+            return versionNumber.split("\\.");
+        },
+
+        buildVersionNumberWithOffset: { String sourceVersionNumber, String currentMCVersion, String relativeMCVersion, int versionElementIndex, int mcVersionElementIndex ->
+            String[] sourceVersionElements = opc.splitVersionNumber(sourceVersionNumber);
+            String[] currentMCVersionElements = opc.splitVersionNumber(currentMCVersion);
+            String[] relativeMCVersionElements = opc.splitVersionNumber(relativeMCVersion);
+
+            int mcVersion = Integer.parseInt(currentMCVersionElements[mcVersionElementIndex])
+            int relativeMcVersion = Integer.parseInt(relativeMCVersionElements[mcVersionElementIndex])
+            int offset = mcVersion - relativeMcVersion;
+
+            String version = "";
+            for (i in 0..<sourceVersionElements.length) {
+                if (i != versionElementIndex)
+                    version += sourceVersionElements[i];
+                else
+                    version += ((Integer.parseInt(sourceVersionElements[i]) + offset).toString())
+
+                if (i != sourceVersionElements.length - 1)
+                    version += "."
+            }
+
+            return version;
+        },
+
+        getEnvironmentPropertyName: { String propertyName ->
+            String[] propertyNameElements = propertyName.split("(?=\\p{Upper})");
+            return String.join("_", propertyNameElements).toUpperCase();
+        },
+
+        getProperty: { String propertyName ->
+            if (project.hasProperty(propertyName) && project.getProperty(propertyName).toString().trim() != "") {
+                return project.getProperty(propertyName).toString().trim()
+            }
+
+            String environmentPropertyName = opc.getEnvironmentPropertyName(propertyName);
+            return System.getenv().containsKey(environmentPropertyName) ? System.getenv().get(environmentPropertyName).toString().trim() : ""
+        },
+
+        getIntProperty: { String propertyName ->
+            if (project.hasProperty(propertyName) && project.getProperty(propertyName).toString().trim() != "") {
+                return Integer.parseInt(project.getProperty(propertyName).toString().trim())
+            }
+
+            String environmentPropertyName = opc.getEnvironmentPropertyName(propertyName);
+            return System.getenv().containsKey(environmentPropertyName) ? Integer.parseInt(System.getenv().get(environmentPropertyName).toString().trim()) : 0
+        },
+
+        getStringListProperty: { String propertyName ->
+            if (!opc.hasRawPropertySet(propertyName)) {
+                def potentialResultList = new ArrayList<String>();
+
+                for (def i = 0; i < project.getProperties().size(); i++) {
+                    def lookupPropertyKey = propertyName + "[" + i + "]";
+                    if (!opc.hasRawPropertySet(lookupPropertyKey)) {
+                        break;
+                    }
+
+                    def lookupPropertyValue = opc.getProperty(lookupPropertyKey);
+                    if (lookupPropertyValue != "") {
+                        potentialResultList.add(lookupPropertyValue);
+                    }
+                }
+
+                return potentialResultList.toArray(String[]::new);
+            }
+
+            String propertyValue = opc.getProperty(propertyName);
+            String[] values = propertyValue.split(";")
+            List<String> listValues = Arrays.asList(values);
+            listValues.removeIf({value -> value == null || value.trim().isEmpty() })
+            return listValues.toArray(String[]::new);
+        },
+
+        hasPropertySet: { String propertyName ->
+            boolean result = opc.hasRawPropertySet(propertyName);
+
+            if (!result) {
+                return opc.hasRawPropertySet(propertyName + "[0]"); //Also check for lists.
+            }
+
+            return result;
+        },
+
+        hasRawPropertySet: { String propertyName ->
+            boolean result = opc.getProperty(propertyName) != "";
+            return result;
+        },
+
+        capitalize: { String word -> return (word.length() == 0 ? "" : word.substring(0,1).toUpperCase() + (word.length() == 1 ? "" : word.substring(1)))
+        },
+
+        isFeatureEnabled: { String featureName ->
+            String propertyValue = opc.getProperty("uses" + opc.capitalize(featureName));
+            boolean enabled = propertyValue.toLowerCase() == "true";
+            return enabled;
+        },
+]
