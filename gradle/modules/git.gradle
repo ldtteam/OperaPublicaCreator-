@@ -1,0 +1,18 @@
+buildscript {
+    repositories {
+        maven {
+            name = 'ajoberstar-backup'
+            url = 'https://ajoberstar.org/bintray-backup/'
+        }
+    }
+    dependencies {
+        classpath 'org.ajoberstar:grgit:3.3'
+    }
+}
+
+ext.git = [
+        repositry: new Object(),
+        branch: new Object()
+]
+ext.git.repository = org.ajoberstar.grgit.Grgit.open(currentDir: file('.'))
+ext.git.branch = git.repository.branch.getCurrent()
