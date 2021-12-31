@@ -539,6 +539,13 @@ project.minecraft {
             dataSpec.args '--all', '--output', file("src/datagen/generated/${project.modId}"),
                     '--mod', "${project.modId}".toString(),
                     '--existing', sourceSets.main.resources.srcDirs[0]
+
+            if (opc.hasPropertySet("additionalModsInDataGen")) {
+                opc.getStringListProperty("additionalModsInDataGen").each { modId ->
+                    dataSpec.args '--existing-mod', modId
+                }
+            }
+
             dataSpec.mods { n ->
                 def mod = n.create(project.modId);
                 runtimeSourceSets.forEach(sourceSetName -> {
