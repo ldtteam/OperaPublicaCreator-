@@ -896,9 +896,6 @@ publishing {
                 if (sourceSetName != "main") {
                     pub.artifacts.artifact(project.tasks[jarTaskName])
                 }
-                if (sourceSetName == "main" && projectUsesShadowing) {
-                    pub.artifacts.artifact(project.tasks.jar);
-                }
                 pub.artifacts.artifact(project.tasks[sourceTaskName])
             })
 
