@@ -1098,14 +1098,6 @@ else
     }
 }
 
-
-idea {
-    module {
-        inheritOutputDirs = true
-    }
-}
-
-
 if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLowerCase() == "true" &&
         System.getenv().containsKey("crowdinKey") && !project.gradle.startParameter.isOffline()) {
     task downloadCrowdin() {
