@@ -147,15 +147,15 @@ if (project.file("gradle/local.configuration.gradle").exists()) {
 }
 
 if (opc.isFeatureEnabled("crowdin")) {
-    apply plugin: "de.undercouch.download"
+    apply plugin: de.undercouch.gradle.tasks.download.DownloadTaskPlugin
 }
 
 if (opc.isFeatureEnabled("crowdInTranslationManagement")) {
-    apply plugin: "org.zaproxy.crowdin"
+    apply plugin: org.zaproxy.gradle.crowdin.CrowdinPlugin
 }
 
 if (opc.isFeatureEnabled("sonarQube")) {
-    apply plugin: "org.sonarqube"
+    apply plugin: org.sonarqube.gradle.SonarQubePlugin
 }
 
 apply plugin: 'java-library'
