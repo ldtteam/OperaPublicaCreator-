@@ -499,6 +499,7 @@ configurations { configContainer ->
 }
 
 project.minecraft {
+    copyIdeResources = true
     mappings channel: project.mappingsChannel, version: project.mappingsVersion
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
@@ -696,9 +697,9 @@ jar {
         project.jar.from project.sourceSets[sourceSetName].output
     })
 
-    classifier primaryJarClassifier
+    archiveClassifier.set(primaryJarClassifier)
     if (projectUsesShadowing) {
-        classifier 'slim'
+        archiveClassifier.set('slim')
     }
 
     manifest {
@@ -775,7 +776,7 @@ additionalSourceSetJars.forEach(additionalSourceSet -> {
 })
 
 task sourcesJar(type: Jar) { it ->
-    classifier = 'sources'
+    archiveClassifier.set('sources')
     duplicatesStrategy 'exclude'
 
     primaryJarSourceSets.forEach(sourceSetName -> {
@@ -792,7 +793,7 @@ javadoc {it ->
 task packageJavadoc(type: Jar) { task ->
     task.dependsOn javadoc
     task.from javadoc
-    task.classifier = 'javadoc'
+    task.archiveClassifier.set('javadoc')
 }
 
 project.tasks.build.dependsOn sourcesJar
@@ -817,7 +818,7 @@ if (projectUsesShadowing) {
             }
         }
 
-        shadowJarTask.classifier = primaryJarClassifier
+        shadowJarTask.archiveClassifier.set(primaryJarClassifier)
     }
 }
 
@@ -1142,7 +1143,7 @@ if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLower
         }
         baseName = project.name
         version = project.version
-        classifier = 'crowdin'
+        archiveClassifier.set('crowdin')
         destinationDir = file('build/distributions')
         from(zipTree(downloadCrowdin.output)){
             eachFile {
