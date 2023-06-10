@@ -696,9 +696,9 @@ jar {
         project.jar.from project.sourceSets[sourceSetName].output
     })
 
-    classifier primaryJarClassifier
+    archiveClassifier primaryJarClassifier
     if (projectUsesShadowing) {
-        classifier 'slim'
+        archiveClassifier 'slim'
     }
 
     manifest {
@@ -775,7 +775,7 @@ additionalSourceSetJars.forEach(additionalSourceSet -> {
 })
 
 task sourcesJar(type: Jar) { it ->
-    classifier = 'sources'
+    archiveClassifier = 'sources'
     duplicatesStrategy 'exclude'
 
     primaryJarSourceSets.forEach(sourceSetName -> {
@@ -792,7 +792,7 @@ javadoc {it ->
 task packageJavadoc(type: Jar) { task ->
     task.dependsOn javadoc
     task.from javadoc
-    task.classifier = 'javadoc'
+    task.archiveClassifier = 'javadoc'
 }
 
 project.tasks.build.dependsOn sourcesJar
@@ -817,7 +817,7 @@ if (projectUsesShadowing) {
             }
         }
 
-        shadowJarTask.classifier = primaryJarClassifier
+        shadowJarTask.archiveClassifier = primaryJarClassifier
     }
 }
 
@@ -1142,7 +1142,7 @@ if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLower
         }
         baseName = project.name
         version = project.version
-        classifier = 'crowdin'
+        archiveClassifier = 'crowdin'
         destinationDir = file('build/distributions')
         from(zipTree(downloadCrowdin.output)){
             eachFile {
