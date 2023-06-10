@@ -499,6 +499,7 @@ configurations { configContainer ->
 }
 
 project.minecraft {
+    copyIdeResources = true
     mappings channel: project.mappingsChannel, version: project.mappingsVersion
     accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
 
