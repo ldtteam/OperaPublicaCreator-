@@ -605,26 +605,37 @@ if (useDefaultTestSystem) {
     def assertJCoreVersion = "3.9.0"
     def hamcrestAllVersion = "1.3"
 
+    def modernMockito = false
+
+    if (opc.isFeatureEnabled("modernMockito")) {
+        modernMockito = true;
+        mockitoCoreVersion = "5.+"
+    }
+
     if (project.hasProperty("jUnitVersion")) {
         jUnitVersion = project.jUnitVersion;
     }
     if (project.hasProperty("mockitoCoreVersion")) {
         mockitoCoreVersion = project.mockitoCoreVersion;
     }
-    if (project.hasProperty("powerMockVersion")) {
-        powerMockModuleJUnit4Version = project.powerMockVersion;
-        powerMockApiMockitoVersion = project.powerMockVersion;
-        powerMockModuleJUnit4RuleEngineVersion = project.powerMockVersion;
+
+    if (!modernMockito) {
+        if (project.hasProperty("powerMockVersion")) {
+            powerMockModuleJUnit4Version = project.powerMockVersion;
+            powerMockApiMockitoVersion = project.powerMockVersion;
+            powerMockModuleJUnit4RuleEngineVersion = project.powerMockVersion;
+        }
+        if (project.hasProperty("powerMockModuleJUnit4Version")) {
+            powerMockModuleJUnit4Version = project.powerMockModuleJUnit4Version;
+        }
+        if (project.hasProperty("powerMockApiMockitoVersion")) {
+            powerMockApiMockitoVersion = project.powerMockApiMockitoVersion;
+        }
+        if (project.hasProperty("powerMockModuleJUnit4RuleEngineVersion")) {
+            powerMockModuleJUnit4RuleEngineVersion = project.powerMockModuleJUnit4RuleEngineVersion;
+        }
     }
-    if (project.hasProperty("powerMockModuleJUnit4Version")) {
-        powerMockModuleJUnit4Version = project.powerMockModuleJUnit4Version;
-    }
-    if (project.hasProperty("powerMockApiMockitoVersion")) {
-        powerMockApiMockitoVersion = project.powerMockApiMockitoVersion;
-    }
-    if (project.hasProperty("powerMockModuleJUnit4RuleEngineVersion")) {
-        powerMockModuleJUnit4RuleEngineVersion = project.powerMockModuleJUnit4RuleEngineVersion;
-    }
+
     if (project.hasProperty("assertJCoreVersion")) {
         assertJCoreVersion = project.assertJCoreVersion;
     }
@@ -640,18 +651,16 @@ if (useDefaultTestSystem) {
 
         dependencies.add(configurationName,  "junit:junit:${jUnitVersion}");
         dependencies.add(configurationName,  "org.mockito:mockito-core:${mockitoCoreVersion}");
-        dependencies.add(configurationName,  "org.powermock:powermock-module-junit4:${powerMockModuleJUnit4Version}");
-        dependencies.add(configurationName,  "org.powermock:powermock-api-mockito2:${powerMockApiMockitoVersion}");
-        dependencies.add(configurationName,  "org.powermock:powermock-module-junit4-rule-agent:${powerMockModuleJUnit4RuleEngineVersion}");
+
+        if (!modernMockito) {
+            dependencies.add(configurationName,  "org.powermock:powermock-module-junit4:${powerMockModuleJUnit4Version}");
+            dependencies.add(configurationName,  "org.powermock:powermock-api-mockito2:${powerMockApiMockitoVersion}");
+            dependencies.add(configurationName,  "org.powermock:powermock-module-junit4-rule-agent:${powerMockModuleJUnit4RuleEngineVersion}");
+        }
+
         dependencies.add(configurationName,  "org.assertj:assertj-core:${assertJCoreVersion}");
         dependencies.add(configurationName,  "org.hamcrest:hamcrest-all:${hamcrestAllVersion}");
     })
-
-    //Setup the test task to use JUnit 5 and its platform.
-    project.tasks.withType(Test).configureEach { testTask ->
-        testTask.useJUnitPlatform()
-        testTask.jvmArgs("--add-opens java.base/java.lang=ALL-UNNAMED", "--add-opens java.util/java.lang=ALL-UNNAMED")
-    }
 }
 
 def intelliJAnnotationsVersion = "21.0.1"
