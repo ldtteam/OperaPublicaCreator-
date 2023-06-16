@@ -727,7 +727,8 @@ processResources {
     outputs.upToDateWhen { false }
 
     if (!opc.isFeatureDisabled("resourceDataExpansionFromProjectKeys")) {
-        def props = ["version": rootProject.version]
+        def props = new HashMap<>(project.properties)
+        props.put("version", rootProject.version)
 
         if (opc.isFeatureEnabled("additionalVersionInjectionIntoModsToml")) {
             props.put("mcVersion", "[${project.minecraftVersion}]")
