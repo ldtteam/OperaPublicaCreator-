@@ -105,6 +105,33 @@ ext.opc = [
             return listValues.toArray(String[]::new);
         },
 
+        getFirstStringListPropertyElement: { String propertyName ->
+            if (!opc.hasRawPropertySet(propertyName)) {
+                def potentialResultList = new ArrayList<String>();
+
+                def lookupPropertyKey = propertyName + "[0]";
+                if (!opc.hasRawPropertySet(lookupPropertyKey)) {
+                    return "";
+                }
+
+                def lookupPropertyValue = opc.getProperty(lookupPropertyKey);
+                if (lookupPropertyValue != "") {
+                    return lookupPropertyValue;
+                }
+
+                return ""
+            }
+
+            String propertyValue = opc.getProperty(propertyName);
+            String[] values = propertyValue.split(";")
+            List<String> listValues = Arrays.asList(values);
+            listValues.removeIf({value -> value == null || value.trim().isEmpty() })
+            if (listValues.size() == 0) {
+                return "";
+            }
+            return listValues.get(0);
+        },
+
         hasPropertySet: { String propertyName ->
             boolean result = opc.hasRawPropertySet(propertyName);
 
@@ -700,9 +727,19 @@ processResources {
     outputs.upToDateWhen { false }
 
     if (!opc.isFeatureDisabled("resourceDataExpansionFromProjectKeys")) {
-        def props = ["version":version]
+        def props = ["version": rootProject.version]
+
+        if (opc.isFeatureEnabled("additionalVersionInjectionIntoModsToml")) {
+            props.put("mcVersion", "[${project.minecraftVersion}]")
+
+            def minimalSupportedVersion = opc.getFirstStringListPropertyElement("additionalMinecraftVersions")
+            if (minimalSupportedVersion != "") {
+                props.put("mcVersion", "[${minimalSupportedVersion}, ${project.minecraftVersion}]");
+            }
+        }
+
         filesMatching ('**/mods.toml') {
-            expand project.properties
+            expand props
         }
     }
 }
