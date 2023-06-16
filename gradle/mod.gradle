@@ -646,6 +646,12 @@ if (useDefaultTestSystem) {
         dependencies.add(configurationName,  "org.assertj:assertj-core:${assertJCoreVersion}");
         dependencies.add(configurationName,  "org.hamcrest:hamcrest-all:${hamcrestAllVersion}");
     })
+
+    //Setup the test task to use JUnit 5 and its platform.
+    project.tasks.withType(Test).configureEach { testTask ->
+        testTask.useJUnitPlatform()
+        testTask.jvmArgs("--add-opens java.base/java.lang=ALL-UNNAMED", "--add-opens java.util/java.lang=ALL-UNNAMED")
+    }
 }
 
 def intelliJAnnotationsVersion = "21.0.1"
@@ -1337,3 +1343,4 @@ if (project.file("gradle/local.gradle").exists()) {
 }
 
 project.getLogger().lifecycle("Loaded remote build.gradle with version: " + project.version)
+
