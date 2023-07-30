@@ -161,6 +161,17 @@ ext.opc = [
             boolean disabled = propertyValue.toLowerCase() == "false";
             return disabled;
         },
+
+        determineNextMajorVersion: { String v ->
+            def components = v.split("\\.")
+            def major = components[0].toInteger()
+            return "${major + 1}.0.0".toString()
+        },
+
+        buildSupportedVersionRange: { String v ->
+            def nextMajorComponent = opc.determineNextMajorVersion(v)
+            return "[${v},${nextMajorComponent})".toString()
+        }
 ]
 
 if (project.file("gradle/configuration.gradle").exists()) {
@@ -197,6 +208,16 @@ if ((project.hasProperty("useShadowJar") && project.useShadowJar.toString().toLo
 if (projectUsesShadowing) {
     apply plugin: com.github.jengelman.gradle.plugins.shadow.ShadowPlugin
 }
+
+def projectUsesJarJar = false;
+if (opc.isFeatureEnabled("jarJar")) {
+    projectUsesJarJar = true;
+
+    if (projectUsesShadowing) {
+        throw new IllegalStateException("Cannot use both shadowing and jar-in-jar at the same time!")
+    }
+}
+
 if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
         && (opc.hasPropertySet("curseApiKey") || opc.hasPropertySet("CURSEAPIKEY"))
         && (opc.hasPropertySet("curseReleaseType") || opc.hasPropertySet("CURSERELEASETYPE"))) {
@@ -474,8 +495,10 @@ availableSourceSets.forEach(sourceSetName -> {
 })
 
 configurations {
-    contained {
-        transitive = false
+    contained { config ->
+        if (projectUsesShadowing || (projectUsesJarJar && opc.isFeatureEnabled("noneTransitiveJarJar"))) {
+            config.transitive = false
+        }
     }
 }
 
@@ -751,7 +774,7 @@ jar {
     })
 
     archiveClassifier.set(primaryJarClassifier)
-    if (projectUsesShadowing) {
+    if (projectUsesShadowing || projectUsesJarJar) {
         archiveClassifier.set('slim')
     }
 
@@ -875,6 +898,16 @@ if (projectUsesShadowing) {
     }
 }
 
+if (projectUsesJarJar) {
+    project.tasks.jarJar { jarJarTask ->
+        primaryJarSourceSets.forEach(sourceSetName -> {
+            jarJarTask.from project.sourceSets[sourceSetName].output
+        })
+
+        jarJarTask.configurations = [project.configurations.contained]
+        jarJarTask.archiveClassifier.set(primaryJarClassifier)
+    }
+}
 
 def reobfuscationSourceSets = new HashSet<String>();
 if (projectHasApi) {
@@ -1019,6 +1052,10 @@ publishing {
                         it.setValue(it.text().substring(0, it.text().indexOf('_mapped_')))
                     }
                 }
+            }
+
+            if (projectUsesJarJar) {
+                project.jarJar.component(pub)
             }
         }
     }
