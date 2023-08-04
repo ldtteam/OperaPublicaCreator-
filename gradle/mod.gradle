@@ -1111,7 +1111,7 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
             if (projectUsesShadowing) {
                 cp.mainArtifact(shadowJar)
             } else if (projectUsesJarJar) {
-                cp.mainArtifact(jarJar)
+                cp.mainArtifact(tasks.jarJar)
             } else {
                 cp.mainArtifact(jar)
             }
