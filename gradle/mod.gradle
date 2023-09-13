@@ -20,10 +20,9 @@ buildscript {
         classpath "org.zaproxy.gradle:gradle-plugin-crowdin:0.2.1"
         classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:3.3"
         classpath 'org.parchmentmc:librarian:1.+'
+        classpath 'org.ajoberstar.grgit:grgit-gradle:3.1.0'
     }
 }
-
-apply plugin: 'org.ajoberstar.grgit'
 
 ext.opc = [
         splitVersionNumber: { String versionNumber ->
@@ -255,7 +254,7 @@ ext.git = [
         repositry: new Object(),
         branch: new Object()
 ]
-ext.git.repository = grgit.open(currentDir: file('.'))
+ext.git.repository = org.ajoberstar.grgit.Grgit.open(currentDir: file('.'))
 ext.git.branch = git.repository.branch.getCurrent()
 
 group = project.modGroup
