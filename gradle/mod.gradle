@@ -23,9 +23,7 @@ buildscript {
     }
 }
 
-plugins {
-    id 'org.ajoberstar.grgit' version '5.2.0'
-}
+apply plugin: 'org.ajoberstar.grgit'
 
 ext.opc = [
         splitVersionNumber: { String versionNumber ->
