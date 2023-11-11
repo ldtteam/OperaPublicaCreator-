@@ -522,7 +522,6 @@ if (project.hasProperty("runtimeSourceSets")) {
 }
 
 def librarySourceSets = new HashSet<String>()
-runtimeSourceSets.addAll(librarySourceSets);
 if (project.hasProperty("librarySourceSets")) {
     librarySourceSets.clear();
     opc.getStringListProperty("librarySourceSets").each {String sourceSetName -> librarySourceSets.add(sourceSetName as String) }
