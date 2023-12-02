@@ -221,7 +221,7 @@ if (opc.isFeatureEnabled("jarJar")) {
 if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
         && (opc.hasPropertySet("curseApiKey") || opc.hasPropertySet("CURSEAPIKEY"))
         && (opc.hasPropertySet("curseReleaseType") || opc.hasPropertySet("CURSERELEASETYPE"))) {
-    apply plugin: "net.darkhax.curseforgegradle"
+    apply plugin: net.darkhax.curseforgegradle.CurseForgeGradlePlugin
 }
 apply plugin: net.neoforged.gradle.userdev.UserDevPlugin
 
