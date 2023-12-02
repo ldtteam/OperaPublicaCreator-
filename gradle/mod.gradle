@@ -733,6 +733,11 @@ processResources {
             if (minimalSupportedVersion != "") {
                 props.put("mcVersion", "[${minimalSupportedVersion}, ${project.minecraftVersion}]");
             }
+
+            props.put("forgeVersion", "[${opc.getProperty("forgeVersion")},)")
+            if (opc.hasPropertySet("forgeMinVersion")) {
+                props.put("forgeVersion", "[${opc.getProperty("forgeMinVersion")},)")
+            }
         }
 
         filesMatching ('**/mods.toml') {
