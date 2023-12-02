@@ -4,7 +4,7 @@ import groovy.json.*
 
 buildscript {
     repositories {
-        maven { url = 'https://files.minecraftforge.net/maven' }
+        maven { url = 'https://maven.neoforged.net/releases' }
         maven { url = 'https://maven.parchmentmc.org' }
         mavenLocal()
         mavenCentral()
@@ -17,7 +17,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath "net.minecraftforge.gradle:ForgeGradle:6.+"
+        classpath "net.neoforged.gradle:userdev:7.0.+"
         classpath "gradle.plugin.com.github.jengelman.gradle.plugins:shadow:7.0.0"
         classpath "gradle.plugin.com.matthewprenger:CurseGradle:1.4.0"
         classpath "de.undercouch:gradle-download-task:4.1.2"
@@ -223,7 +223,7 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
         && (opc.hasPropertySet("curseReleaseType") || opc.hasPropertySet("CURSERELEASETYPE"))) {
     apply plugin: com.matthewprenger.cursegradle.CurseGradlePlugin
 }
-apply plugin: net.minecraftforge.gradle.userdev.UserDevPlugin
+apply plugin: net.neoforged.gradle.userdev.UserDevPlugin
 
 if (opc.isFeatureEnabled("parchment")) {
     apply plugin: org.parchmentmc.librarian.forgegradle.LibrarianForgeGradlePlugin
@@ -287,6 +287,9 @@ project.properties.file = [
 ];
 
 project.logger.lifecycle("Starting Gradle build for: " + project.modId + " with version: " + project.version)
+
+configurations.maybeCreate("minecraft");
+configurations.implementation.extendsFrom configurations.minecraft
 
 def projectHasApi = true;
 if (project.hasProperty("projectHasApi")) {
@@ -548,80 +551,45 @@ configurations { configContainer ->
     }
 }
 
-project.minecraft {
-    copyIdeResources = true
-    mappings channel: project.mappingsChannel, version: project.mappingsVersion
-    accessTransformer = file('src/main/resources/META-INF/accesstransformer.cfg')
+minecraft.accessTransformers.file rootProject.file('src/main/resources/META-INF/accesstransformer.cfg')
 
-    runs { runSpecContainer ->
-        def clientSpec = runSpecContainer.maybeCreate("client")
-        clientSpec.workingDirectory project.file('run')
-        clientSpec.property 'forge.logging.markers', ''
-        clientSpec.property 'forge.logging.console.level', 'info'
-        clientSpec.property 'mixin.env.remapRefMap', 'true'
-        clientSpec.property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-        clientSpec.mods { n ->
-            def mod = n.create(project.modId);
-            runtimeSourceSets.forEach(sourceSetName -> {
-                def sourceSet = project.sourceSets[sourceSetName]
-                mod.source(sourceSet)
-            })
-        }
+runs {
+    client {
         if (opc.isFeatureEnabled("randomUsernames")) {
             var randomAppendix = (Math.abs(new Random().nextInt() % 600) + 1).toString();
-            clientSpec.args '--username', "Dev{$randomAppendix}"
+            args '--username', "Dev{$randomAppendix}"
         }
+    }
 
-        def serverSpec = runSpecContainer.maybeCreate("server")
-        serverSpec.workingDirectory project.file('run')
-        serverSpec.property 'forge.logging.markers', ''
-        serverSpec.property 'forge.logging.console.level', 'info'
-        serverSpec.property 'mixin.env.remapRefMap', 'true'
-        serverSpec.property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-        serverSpec.mods { n ->
-            def mod = n.create(project.modId);
-            runtimeSourceSets.forEach(sourceSetName -> {
-                def sourceSet = project.sourceSets[sourceSetName]
-                mod.source(sourceSet)
-            })
-        }
+    server { }
 
-        if (opc.isFeatureEnabled("datagen")) {
-            def dataSpec = runSpecContainer.maybeCreate("data")
-            dataSpec.workingDirectory project.file('run')
-            dataSpec.property 'forge.logging.markers', ''
-            dataSpec.property 'forge.logging.console.level', 'info'
-            dataSpec.property 'mixin.env.remapRefMap', 'true'
-            dataSpec.property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
-            dataSpec.args '--all', '--output', file("src/datagen/generated/${project.modId}"),
-                    '--mod', "${project.modId}".toString(),
-                    '--existing', sourceSets.main.resources.srcDirs[0]
+    data {
+        programArguments.addAll '--mod', project.modId, '--all', '--output', file("src/datagen/generated/${project.modId}").getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
 
-            if (opc.hasPropertySet("additionalModsInDataGen")) {
-                opc.getStringListProperty("additionalModsInDataGen").each { modId ->
-                    dataSpec.args '--existing-mod', modId
-                }
-            }
-
-            dataSpec.mods { n ->
-                def mod = n.create(project.modId);
-                runtimeSourceSets.forEach(sourceSetName -> {
-                    def sourceSet = project.sourceSets[sourceSetName]
-                    mod.source(sourceSet)
-                })
+        if (opc.hasPropertySet("additionalModsInDataGen")) {
+            opc.getStringListProperty("additionalModsInDataGen").each { modId ->
+                programArguments.addAll '--existing-mod', modId
             }
         }
+    }
 
-        project.afterEvaluate {
-            def paths = new HashSet<String>();
-            libraryConfigs.each { config ->
-                config.copyRecursive().resolve().collect { it.absolutePath.toString() }.each {path -> paths.add(path)}
-            }
+    gameTestServer {
+        systemProperty 'forge.enabledGameTestNamespaces', project.modId
+    }
 
-            runSpecContainer.each {runSpec ->
-                runSpec.lazyToken('minecraft_classpath') {
-                    paths.join(File.pathSeparator)
-                }
+
+    configureEach { run ->
+        run.systemProperty 'forge.logging.markers', ''
+        run.systemProperty 'forge.logging.console.level', 'info'
+
+        runtimeSourceSets.forEach(sourceSetName -> {
+            def sourceSet = project.sourceSets[sourceSetName]
+            run.modSource sourceSet
+        })
+
+        libraryConfigs.each { config ->
+            run.dependencies { dependencies ->
+                dependencies.runtime dependencies.configuration(config)
             }
         }
     }
@@ -727,9 +695,14 @@ annotatedSourceSets.forEach(sourceSetName -> {
     dependencies.add(configurationName,  "org.jetbrains:annotations:${intelliJAnnotationsVersion}");
 })
 
-dependencies {
-    minecraft "net.minecraftforge:forge:${project.exactMinecraftVersion}-${project.forgeVersion}"
-}
+availableSourceSets.forEach(sourceSetName -> {
+    def configurationName = sourceSetName + "Implementation"
+    if (sourceSetName == "main") {
+        configurationName = "implementation"
+    }
+
+    dependencies.add(configurationName,  "net.neoforged:neoforge:${project.forgeVersion}");
+})
 
 def primaryJarClassifier = 'universal'
 if (project.hasProperty("primaryJarClassifier")) {
@@ -908,36 +881,6 @@ if (projectUsesJarJar) {
         jarJarTask.archiveClassifier.set(primaryJarClassifier)
     }
 }
-
-def reobfuscationSourceSets = new HashSet<String>();
-if (projectHasApi) {
-    reobfuscationSourceSets.add("api");
-}
-reobfuscationSourceSets.add("main");
-if (project.hasProperty("reobfuscationSourceSets")) {
-    reobfuscationSourceSets.clear();
-    Arrays.stream(project.reobfuscationSourceSets.split(";")).forEach(sourceSetName -> reobfuscationSourceSets.add(sourceSetName as String))
-}
-
-def reobfuscationContainer = project.reobf
-reobfuscationSourceSets.forEach(sourceSetName -> {
-    def sourceSet = project.sourceSets[sourceSetName]
-    def taskName = sourceSetName + "Jar"
-    if (sourceSetName == "main") {
-        taskName = "jar"
-    }
-
-    def task = reobfuscationContainer.create(taskName)
-    task.getClasspath().from(sourceSet.getCompileClasspath())
-    task.group 'reobfuscation'
-
-    if (sourceSetName == "main" && projectUsesShadowing) {
-        taskName = "shadowJar"
-        def shadowTask = reobfuscationContainer.create(taskName)
-        shadowTask.group 'reobfuscation'
-        shadowTask.getClasspath().from(sourceSet.getCompileClasspath())
-    }
-})
 
 def publishableSourceSets = new HashSet<String>()
 if (projectHasApi) {
