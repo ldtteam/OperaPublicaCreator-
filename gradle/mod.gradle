@@ -589,7 +589,7 @@ runs {
 
         libraryConfigs.each { config ->
             run.dependencies { dependencies ->
-                dependencies.runtime dependencies.configuration(config)
+                dependencies.runtime config
             }
         }
     }
