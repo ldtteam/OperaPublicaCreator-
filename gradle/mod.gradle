@@ -558,6 +558,12 @@ if (opc.hasRawPropertySet('datagenRunFolder')) {
     datagenRunFolder = opc.getProperty('datagenRunFolder')
 }
 
+if (opc.isFeatureEnabled('runFolderPerVersion')) {
+    clientRunFolder += '/' + project.exactMinecraftVersion
+    serverRunFolder += '/' + project.exactMinecraftVersion
+    datagenRunFolder += '/' + project.exactMinecraftVersion
+}
+
 project.minecraft {
     copyIdeResources = true
     mappings channel: project.mappingsChannel, version: project.mappingsVersion
