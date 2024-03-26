@@ -544,17 +544,17 @@ configurations { configContainer ->
 }
 
 def clientRunFolder = 'run'
-if (project.hasProperty('clientRunFolder')) {
+if (opc.hasRawPropertySet('clientRunFolder')) {
     clientRunFolder = opc.getProperty('clientRunFolder')
 }
 
 def serverRunFolder = 'run'
-if (project.hasProperty('serverRunFolder')) {
+if (opc.hasRawPropertySet('serverRunFolder')) {
     serverRunFolder = opc.getProperty('serverRunFolder')
 }
 
 def datagenRunFolder = 'run'
-if (project.hasProperty('datagenRunFolder')) {
+if (opc.hasRawPropertySet('datagenRunFolder')) {
     datagenRunFolder = opc.getProperty('datagenRunFolder')
 }
 
