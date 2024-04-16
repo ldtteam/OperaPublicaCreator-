@@ -886,7 +886,7 @@ if (projectUsesJarJar) {
             jarJarTask.from project.sourceSets[sourceSetName].output
         })
 
-        jarJarTask.configurations = [project.configurations.contained]
+        jarJarTask.configuration project.configurations.contained
         jarJarTask.archiveClassifier.set(primaryJarClassifier)
     }
 }
