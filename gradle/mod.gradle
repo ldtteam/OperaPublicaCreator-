@@ -1005,10 +1005,6 @@ publishing {
                     }
                 }
             }
-
-            if (projectUsesJarJar) {
-                project.jarJar.component(pub)
-            }
         }
     }
 
