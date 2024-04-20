@@ -906,53 +906,13 @@ if (projectUsesJarJar) {
     }
 }
 
-/*
-artifacts { it ->
-    publishableSourceSets.forEach(sourceSetName -> {
-        String javaDocTaskName = sourceSetName + "PackageJavadoc"
-        String jarTaskName = sourceSetName + "Jar"
-        String sourceTaskName = sourceSetName + "Sources"
-        if (sourceSetName == "main") {
-            javaDocTaskName = "packageJavadoc"
-            jarTaskName = "jar"
-            sourceTaskName = "sourcesJar"
-        }
-
-        it.add("default", project.tasks[javaDocTaskName])
-        it.add("default", project.tasks[jarTaskName])
-        it.add("default", project.tasks[sourceTaskName])
-
-        if (sourceSetName == "main" && projectUsesShadowing) {
-            it.add("default", project.tasks.shadowJar);
-        }
-    })
-}
-*/
-
 publishing {
     publications {
         mavenJava(MavenPublication) {pub ->
             from project.components.java
-/*
-            artifactId project.modId
 
-            publishableSourceSets.forEach(sourceSetName -> {
-                String javaDocTaskName = sourceSetName + "PackageJavadoc"
-                String jarTaskName = sourceSetName + "Jar"
-                String sourceTaskName = sourceSetName + "Sources"
-                if (sourceSetName == "main") {
-                    javaDocTaskName = "packageJavadoc"
-                    jarTaskName = "jar"
-                    sourceTaskName = "sourcesJar"
-                }
+            suppressAllPomMetadataWarnings()
 
-                pub.artifacts.artifact(project.tasks[javaDocTaskName])
-                if (sourceSetName != "main") {
-                    pub.artifacts.artifact(project.tasks[jarTaskName])
-                }
-                pub.artifacts.artifact(project.tasks[sourceTaskName])
-            })
-*/
             pom {
                 url = project.githubUrl
                 licenses {
