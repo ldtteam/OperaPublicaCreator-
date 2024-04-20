@@ -1051,14 +1051,11 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
         mainArtifact.changelogType = 'markdown'
 
         publishableSourceSets.forEach(sourceSetName -> {
-            String javaDocTaskName = sourceSetName + "PackageJavadoc"
-            String jarTaskName = sourceSetName + "Jar"
-            String sourceTaskName = sourceSetName + "Sources"
-            if (sourceSetName == "main") {
-                javaDocTaskName = "packageJavadoc"
-                jarTaskName = "jar"
-                sourceTaskName = "sourcesJar"
-            }
+            def sourceSet = project.sourceSets[sourceSetName]
+
+            String javaDocTaskName = sourceSet.getJavadocJarTaskName()
+            String jarTaskName = sourceSet.getJarTaskName()
+            String sourceTaskName = sourceSet.getSourcesJarTaskName()
 
             mainArtifact.withAdditionalFile(project.tasks[javaDocTaskName])
             if (sourceSetName != "main" || projectUsesShadowing) {
