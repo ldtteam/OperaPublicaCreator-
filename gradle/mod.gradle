@@ -733,7 +733,7 @@ availableSourceSets.forEach(sourceSetName -> {
     dependencies.add(configurationName,  "net.neoforged:neoforge:${project.forgeVersion}");
 })
 
-def primaryJarClassifier = 'universal'
+def primaryJarClassifier = ''
 if (project.hasProperty("primaryJarClassifier")) {
     primaryJarClassifier = project.primaryJarClassifier;
 }
