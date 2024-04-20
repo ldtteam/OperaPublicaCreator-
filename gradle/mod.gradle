@@ -816,11 +816,13 @@ if (project.hasProperty("additionalSourceSetJars")) {
 }
 
 additionalSourceSetJars.forEach(additionalSourceSet -> {
-    String additionalSourceSetJavaDocTaskName = additionalSourceSet + "Javadoc"
-    String additionalSourceSetPackageJavaDocTaskName = additionalSourceSet + "PackageJavadoc"
-    String additionalSourceSetJarTaskName = additionalSourceSet + "Jar"
-    String additionalSourceSetSourcesTaskName = additionalSourceSet + "Sources"
-    String additionalSourceSetBuildTask = additionalSourceSet + "Build"
+    def sourceSet = project.sourceSets[additionalSourceSet]
+
+    String additionalSourceSetJavaDocTaskName = sourceSet.getJavadocTaskName()
+    String additionalSourceSetPackageJavaDocTaskName = sourceSet.getJavadocJarTaskName()
+    String additionalSourceSetJarTaskName = sourceSet.getJarTaskName()
+    String additionalSourceSetSourcesTaskName = sourceSet.getSourcesJarTaskName()
+    String additionalSourceSetBuildTask = sourceSet.getTaskName("build", null)
 
     String additionalSourceSetJavadocClassifier = sourceSetClassifiers.getOrDefault(additionalSourceSet, additionalSourceSet.toLowerCase()) + "-javadoc"
     String additionalSourceSetSourcesClassifier = sourceSetClassifiers.getOrDefault(additionalSourceSet, additionalSourceSet.toLowerCase()) + "-sources"
