@@ -1222,10 +1222,6 @@ tasks.withType(Jar.class, {task ->
     task.duplicatesStrategy 'exclude'
 })
 
-tasks.withType(GenerateModuleMetadata) {
-    enabled = false
-}
-
 if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translationMergeSources") && opc.hasPropertySet("translationMergeDestination")) {
     task mergeTranslations {
         doLast {
