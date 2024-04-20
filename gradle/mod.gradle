@@ -292,9 +292,7 @@ project.properties.file = [
 
 project.logger.lifecycle("Starting Gradle build for: " + project.modId + " with version: " + project.version)
 
-configurations.maybeCreate("minecraft");
-configurations.implementation.extendsFrom configurations.minecraft
-
+def publishableSourceSets = new HashSet<String>()
 def projectHasApi = true;
 if (project.hasProperty("projectHasApi")) {
     projectHasApi = project.projectHasApi.toString().toLowerCase() == "true"
@@ -302,6 +300,16 @@ if (project.hasProperty("projectHasApi")) {
     if (!projectHasApi) {
         project.logger.lifecycle "Disabling API systems."
     }
+}
+
+
+if (projectHasApi) {
+    publishableSourceSets.add("api")
+}
+publishableSourceSets.add("main")
+if (project.hasProperty("publishableSourceSets")) {
+    publishableSourceSets.clear();
+    Arrays.stream(project.publishableSourceSets.split(";")).forEach(sourceSetName -> publishableSourceSets.add(sourceSetName as String))
 }
 
 def defaultSourceSetConfigurationDependencies = new HashSet<String>();
@@ -312,8 +320,6 @@ def sourceSetAdditionalResourceDirectories = new HashMap<String, Set<String>>();
 def sourceSetExcludedResourceDefinitions = new HashMap<String, Set<String>>();
 def sourceSetIncludedResourceDefinitions = new HashMap<String, Set<String>>();
 def sourceSetClassifiers = new HashMap<String, String>();
-
-defaultSourceSetConfigurationDependencies.add("minecraft");
 
 if (projectHasApi) {
     availableSourceSets.add("api");
@@ -452,16 +458,30 @@ if (project.hasProperty("extendDefaultSourceSetConfiguration") && project.extend
 
 availableSourceSets.forEach(sourceSetName -> {
     project.logger.lifecycle "Configuring source set: ${sourceSetName}"
+
     def sourceSet = project.sourceSets.maybeCreate(sourceSetName)
 
     sourceSet.java.srcDir "src/${sourceSetName}/java"
     sourceSet.resources.srcDir "src/${sourceSetName}/resources"
 
+    if (!sourceSetName.equals('main')) {
+        project.java.registerFeature(sourceSetName, { feature ->
+            feature.usingSourceSet(sourceSet)
+            feature.withJavadocJar()
+            feature.withSourcesJar()
+        })
+    }
+
+    def implementationConfig = project.configurations.maybeCreate(sourceSet.getImplementationConfigurationName())
+    def apiConfig = project.configurations.maybeCreate(sourceSet.getApiConfigurationName())
+
     if (sourceSetConfigurationDependencies.containsKey(sourceSetName)) {
         def configurationDependencies = sourceSetConfigurationDependencies.get(sourceSetName);
         configurationDependencies.forEach(configurationName -> {
             project.logger.lifecycle " > Adding configuration: ${configurationName} as a dependency..."
-            sourceSet.compileClasspath += project.configurations.getByName(configurationName);
+
+            def configuration = project.configurations.maybeCreate(configurationName);
+            implementationConfig.extendsFrom configuration;
         })
     }
 
@@ -471,8 +491,8 @@ availableSourceSets.forEach(sourceSetName -> {
             project.logger.lifecycle " > Adding source set: ${otherSourceSetName} as a dependency..."
             def otherSourceSet = project.sourceSets.maybeCreate(otherSourceSetName);
 
-            sourceSet.compileClasspath += otherSourceSet.output;
-            sourceSet.runtimeClasspath += otherSourceSet.output;
+            def otherSourceSetOutputDependency = project.dependencies.create(otherSourceSet.output)
+            apiConfig.dependencies.add(otherSourceSetOutputDependency)
         })
     }
 
@@ -500,6 +520,11 @@ availableSourceSets.forEach(sourceSetName -> {
         })
     }
 })
+
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
 
 configurations {
     contained { config ->
@@ -800,30 +825,30 @@ additionalSourceSetJars.forEach(additionalSourceSet -> {
     String additionalSourceSetJavadocClassifier = sourceSetClassifiers.getOrDefault(additionalSourceSet, additionalSourceSet.toLowerCase()) + "-javadoc"
     String additionalSourceSetSourcesClassifier = sourceSetClassifiers.getOrDefault(additionalSourceSet, additionalSourceSet.toLowerCase()) + "-sources"
 
-    org.gradle.api.tasks.javadoc.Javadoc javaDocTask = project.tasks.create(additionalSourceSetJavaDocTaskName, Javadoc.class);
+    org.gradle.api.tasks.javadoc.Javadoc javaDocTask = project.tasks.maybeCreate(additionalSourceSetJavaDocTaskName, Javadoc.class);
     javaDocTask.setClasspath(sourceSets[additionalSourceSet].getCompileClasspath())
     javaDocTask.group 'documentation'
     javaDocTask.source = sourceSets[additionalSourceSet].allJava
     javaDocTask.destinationDir = project.buildDir.toPath().resolve("additional").resolve("javadoc").resolve(additionalSourceSet).toFile()
 
-    org.gradle.api.tasks.bundling.Jar javadocJarTask = project.tasks.create(additionalSourceSetPackageJavaDocTaskName, org.gradle.api.tasks.bundling.Jar.class)
+    org.gradle.api.tasks.bundling.Jar javadocJarTask = project.tasks.maybeCreate(additionalSourceSetPackageJavaDocTaskName, org.gradle.api.tasks.bundling.Jar.class)
     javadocJarTask.dependsOn javaDocTask
     javadocJarTask.group 'packaging'
     javadocJarTask.from javaDocTask
     javadocJarTask.getArchiveClassifier().set(additionalSourceSetJavadocClassifier)
 
-    org.gradle.api.tasks.bundling.Jar outputJarTask = project.tasks.create(additionalSourceSetJarTaskName, org.gradle.api.tasks.bundling.Jar.class)
+    org.gradle.api.tasks.bundling.Jar outputJarTask = project.tasks.maybeCreate(additionalSourceSetJarTaskName, org.gradle.api.tasks.bundling.Jar.class)
     outputJarTask.group 'build'
     outputJarTask.from sourceSets[additionalSourceSet].output
     outputJarTask.getArchiveClassifier().set(additionalSourceSet.toLowerCase())
 
-    org.gradle.api.tasks.bundling.Jar sourcesJarTask = project.tasks.create(additionalSourceSetSourcesTaskName, org.gradle.api.tasks.bundling.Jar.class)
+    org.gradle.api.tasks.bundling.Jar sourcesJarTask = project.tasks.maybeCreate(additionalSourceSetSourcesTaskName, org.gradle.api.tasks.bundling.Jar.class)
     sourcesJarTask.group 'sources'
     sourcesJarTask.duplicatesStrategy 'exclude'
     sourcesJarTask.from sourceSets[additionalSourceSet].allJava
     sourcesJarTask.getArchiveClassifier().set(additionalSourceSetSourcesClassifier)
 
-    Task sourceSetBuildTask = project.tasks.create(additionalSourceSetBuildTask)
+    Task sourceSetBuildTask = project.tasks.maybeCreate(additionalSourceSetBuildTask)
     sourceSetBuildTask.group 'build'
     sourceSetBuildTask.dependsOn javaDocTask
     sourceSetBuildTask.dependsOn javadocJarTask
@@ -833,30 +858,20 @@ additionalSourceSetJars.forEach(additionalSourceSet -> {
     project.tasks.build.dependsOn sourceSetBuildTask
 })
 
-task sourcesJar(type: Jar) { it ->
-    archiveClassifier.set('sources')
-    duplicatesStrategy 'exclude'
+tasks.named('sourcesJar', Jar.class, { Jar jar ->
+    jar.archiveClassifier.set('sources')
+    jar.duplicatesStrategy 'exclude'
 
     primaryJarSourceSets.forEach(sourceSetName -> {
-        it.from project.sourceSets[sourceSetName].allSource
+        jar.from project.sourceSets[sourceSetName].allSource
     })
-}
+})
 
 javadoc {it ->
     primaryJarSourceSets.forEach(sourceSetName -> {
         it.source +=  project.sourceSets[sourceSetName].allJava
     })
 }
-
-task packageJavadoc(type: Jar) { task ->
-    task.dependsOn javadoc
-    task.from javadoc
-    task.archiveClassifier.set('javadoc')
-}
-
-project.tasks.build.dependsOn sourcesJar
-project.tasks.build.dependsOn packageJavadoc
-
 
 if (projectUsesShadowing) {
     shadowJar { shadowJarTask ->
@@ -891,16 +906,7 @@ if (projectUsesJarJar) {
     }
 }
 
-def publishableSourceSets = new HashSet<String>()
-if (projectHasApi) {
-    publishableSourceSets.add("api")
-}
-publishableSourceSets.add("main")
-if (project.hasProperty("publishableSourceSets")) {
-    publishableSourceSets.clear();
-    Arrays.stream(project.publishableSourceSets.split(";")).forEach(sourceSetName -> publishableSourceSets.add(sourceSetName as String))
-}
-
+/*
 artifacts { it ->
     publishableSourceSets.forEach(sourceSetName -> {
         String javaDocTaskName = sourceSetName + "PackageJavadoc"
@@ -921,12 +927,13 @@ artifacts { it ->
         }
     })
 }
+*/
 
 publishing {
     publications {
         mavenJava(MavenPublication) {pub ->
             from project.components.java
-
+/*
             artifactId project.modId
 
             publishableSourceSets.forEach(sourceSetName -> {
@@ -945,7 +952,7 @@ publishing {
                 }
                 pub.artifacts.artifact(project.tasks[sourceTaskName])
             })
-
+*/
             pom {
                 url = project.githubUrl
                 licenses {
@@ -977,32 +984,6 @@ publishing {
                     connection = project.gitUrl
                     developerConnection = project.gitConnectUrl
                     url = project.projectUrl
-                }
-            }
-
-            //Replace all deobf dependencies with normal jar references.
-            pom.withXml { xmlProvider ->
-                def dependencies = asNode().dependencies
-                def allDeps = dependencies.'*';
-
-                allDeps.findAll {
-                    println it
-                }
-
-                // Remove forge deps
-                allDeps.findAll() { el ->
-                    el.artifactId.text() == 'forge' && el.groupId.text() == 'net.minecraftforge'
-                }.forEach() { el ->
-                    el.parent().remove(el)
-                }
-                //remove forgegradle's mapped suffix from versions & set as optional so anyone else doesn't inherit them
-                allDeps.findAll() { el ->
-                    el.version.text().contains('_mapped_')
-                }.each { el ->
-                    def version = el.version
-                    version.each {
-                        it.setValue(it.text().substring(0, it.text().indexOf('_mapped_')))
-                    }
                 }
             }
         }
