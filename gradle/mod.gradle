@@ -824,9 +824,6 @@ additionalSourceSetJars.forEach(additionalSourceSet -> {
     String additionalSourceSetSourcesTaskName = sourceSet.getSourcesJarTaskName()
     String additionalSourceSetBuildTask = sourceSet.getTaskName("build", null)
 
-    String additionalSourceSetJavadocClassifier = sourceSetClassifiers.getOrDefault(additionalSourceSet, additionalSourceSet.toLowerCase()) + "-javadoc"
-    String additionalSourceSetSourcesClassifier = sourceSetClassifiers.getOrDefault(additionalSourceSet, additionalSourceSet.toLowerCase()) + "-sources"
-
     org.gradle.api.tasks.javadoc.Javadoc javaDocTask = project.tasks.maybeCreate(additionalSourceSetJavaDocTaskName, Javadoc.class);
     javaDocTask.setClasspath(sourceSets[additionalSourceSet].getCompileClasspath())
     javaDocTask.group 'documentation'
@@ -837,7 +834,6 @@ additionalSourceSetJars.forEach(additionalSourceSet -> {
     javadocJarTask.dependsOn javaDocTask
     javadocJarTask.group 'packaging'
     javadocJarTask.from javaDocTask
-    javadocJarTask.getArchiveClassifier().set(additionalSourceSetJavadocClassifier)
 
     org.gradle.api.tasks.bundling.Jar outputJarTask = project.tasks.maybeCreate(additionalSourceSetJarTaskName, org.gradle.api.tasks.bundling.Jar.class)
     outputJarTask.group 'build'
@@ -848,7 +844,6 @@ additionalSourceSetJars.forEach(additionalSourceSet -> {
     sourcesJarTask.group 'sources'
     sourcesJarTask.duplicatesStrategy 'exclude'
     sourcesJarTask.from sourceSets[additionalSourceSet].allJava
-    sourcesJarTask.getArchiveClassifier().set(additionalSourceSetSourcesClassifier)
 
     Task sourceSetBuildTask = project.tasks.maybeCreate(additionalSourceSetBuildTask)
     sourceSetBuildTask.group 'build'
