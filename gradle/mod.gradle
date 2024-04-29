@@ -1044,7 +1044,7 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
             mainArtifact.displayName = mainArtifactName + " - " + project.version + " - " + mainArtifact.releaseType
         }
 
-        mainArtifact.changelog = file('build/changelog.md')
+        mainArtifact.changelog = project.rootProject.file("build/changelog.md")
         mainArtifact.changelogType = 'markdown'
 
         publishableSourceSets.forEach(sourceSetName -> {
