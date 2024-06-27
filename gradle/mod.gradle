@@ -769,7 +769,7 @@ processResources {
             }
         }
 
-        filesMatching ('**/mods.toml') {
+        filesMatching ('**/neoforge.mods.toml') {
             expand props
         }
     }
