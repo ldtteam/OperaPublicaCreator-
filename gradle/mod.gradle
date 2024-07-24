@@ -258,12 +258,14 @@ static HashSet<String> newSet(String... members) {
     return set;
 }
 
-ext.git = [
-        repositry: new Object(),
-        branch: new Object()
-]
-ext.git.repository = org.ajoberstar.grgit.Grgit.open(currentDir: file('.'))
-ext.git.branch = git.repository.branch.getCurrent()
+if (opc.isFeatureEnabled("GitInformation")) {
+    ext.git = [
+            repositry: new Object(),
+            branch: new Object()
+    ]
+    ext.git.repository = org.ajoberstar.grgit.Grgit.open(currentDir: file('.'))
+    ext.git.branch = git.repository.branch.getCurrent()
+}
 
 group = project.modGroup
 
@@ -749,10 +751,17 @@ if (project.hasProperty("isFMLLibrary") && project.isFMLLibrary.toString().toLow
 }
 
 processResources {
-    outputs.upToDateWhen { false }
-
     if (!opc.isFeatureDisabled("resourceDataExpansionFromProjectKeys")) {
         def props = new HashMap<>(project.properties)
+
+        def keys = new ArrayList<String>(props.keySet())
+
+        for (String key : keys) {
+            if (!(props.get(key) instanceof String) && !(props.get(key) instanceof Integer)) {
+                props.remove(key)
+            }
+        }
+
         props.put("version", rootProject.version)
 
         if (opc.isFeatureEnabled("additionalVersionInjectionIntoModsToml")) {
@@ -769,9 +778,11 @@ processResources {
             }
         }
 
-        filesMatching ('**/mods.toml') {
+        filesMatching ('**/*') {
             expand props
         }
+
+        getInputs().properties(props)
     }
 }
 
