@@ -543,6 +543,27 @@ configurations { configContainer ->
     }
 }
 
+def clientRunFolder = 'run'
+if (opc.hasRawPropertySet('clientRunFolder')) {
+    clientRunFolder = opc.getProperty('clientRunFolder')
+}
+
+def serverRunFolder = 'run'
+if (opc.hasRawPropertySet('serverRunFolder')) {
+    serverRunFolder = opc.getProperty('serverRunFolder')
+}
+
+def datagenRunFolder = 'run'
+if (opc.hasRawPropertySet('datagenRunFolder')) {
+    datagenRunFolder = opc.getProperty('datagenRunFolder')
+}
+
+if (opc.isFeatureEnabled('runFolderPerVersion')) {
+    clientRunFolder += '/' + project.exactMinecraftVersion
+    serverRunFolder += '/' + project.exactMinecraftVersion
+    datagenRunFolder += '/' + project.exactMinecraftVersion
+}
+
 project.minecraft {
     copyIdeResources = true
     mappings channel: project.mappingsChannel, version: project.mappingsVersion
@@ -550,7 +571,7 @@ project.minecraft {
 
     runs { runSpecContainer ->
         def clientSpec = runSpecContainer.maybeCreate("client")
-        clientSpec.workingDirectory project.file('run')
+        clientSpec.workingDirectory project.file(clientRunFolder)
         clientSpec.property 'forge.logging.markers', ''
         clientSpec.property 'forge.logging.console.level', 'info'
         clientSpec.property 'mixin.env.remapRefMap', 'true'
@@ -568,7 +589,7 @@ project.minecraft {
         }
 
         def serverSpec = runSpecContainer.maybeCreate("server")
-        serverSpec.workingDirectory project.file('run')
+        serverSpec.workingDirectory project.file(serverRunFolder)
         serverSpec.property 'forge.logging.markers', ''
         serverSpec.property 'forge.logging.console.level', 'info'
         serverSpec.property 'mixin.env.remapRefMap', 'true'
@@ -583,7 +604,7 @@ project.minecraft {
 
         if (opc.isFeatureEnabled("datagen")) {
             def dataSpec = runSpecContainer.maybeCreate("data")
-            dataSpec.workingDirectory project.file('run')
+            dataSpec.workingDirectory project.file(datagenRunFolder)
             dataSpec.property 'forge.logging.markers', ''
             dataSpec.property 'forge.logging.console.level', 'info'
             dataSpec.property 'mixin.env.remapRefMap', 'true'
