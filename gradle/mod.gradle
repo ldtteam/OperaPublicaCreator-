@@ -595,11 +595,11 @@ runs {
     server { }
 
     data {
-        programArguments.addAll '--mod', project.modId, '--all', '--output', file("src/datagen/generated/${project.modId}").getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
+        arguments.addAll '--mod', project.modId, '--all', '--output', file("src/datagen/generated/${project.modId}").getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
 
         if (opc.hasPropertySet("additionalModsInDataGen")) {
             opc.getStringListProperty("additionalModsInDataGen").each { modId ->
-                programArguments.addAll '--existing-mod', modId
+                arguments.addAll '--existing-mod', modId
             }
         }
     }
@@ -778,8 +778,15 @@ processResources {
             }
         }
 
-        filesMatching ('**/*') {
-            expand props
+        String[] fileMatchingPatterns = opc.getStringListProperty("resourceProcessingPatterns")
+        if (fileMatchingPatterns.length == 0) {
+            fileMatchingPatterns = ["**/*"]
+        }
+
+        for (final def pattern in fileMatchingPatterns) {
+            filesMatching(pattern) {
+                expand props
+            }
         }
 
         getInputs().properties(props)
