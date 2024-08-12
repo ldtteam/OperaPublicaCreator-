@@ -780,7 +780,11 @@ processResources {
 
         String[] fileMatchingPatterns = opc.getStringListProperty("resourceProcessingPatterns")
         if (fileMatchingPatterns.length == 0) {
-            fileMatchingPatterns = ["**/*"]
+            if (opc.isFeatureEnabled("allResourcesInterpolation")) {
+                fileMatchingPatterns = ["**/*"]
+            } else {
+                fileMatchingPatterns = ["**/**.mods.toml"]
+            }
         }
 
         for (final def pattern in fileMatchingPatterns) {
