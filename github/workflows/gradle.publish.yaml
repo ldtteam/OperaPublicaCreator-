@@ -1,0 +1,141 @@
+# Based off https://github.com/MinecraftForge/SharedActions/blob/main/.github/workflows/gradle.yml
+name: Gradle publishing CI
+
+on:
+  workflow_call:
+    inputs:
+      java:
+        description: "The version of Java to use to run Gradle" # Note: Gradle's Java toolchains feature is used for compiling, which is separate from this
+        required: false
+        type: string
+        default: "21"
+      gradle_tasks:
+        description: "The Gradle task(s) to run at publication"
+        required: false
+        type: string
+        default: "publish"
+      curse_release_type:
+        description: "The type of release to publish to CurseForge"
+        required: false
+        type: string
+        default: "beta"
+    secrets:
+      DISCORD_WEBHOOK:
+        required: true
+
+      MAVEN_USER:
+        required: true
+      MAVEN_PASSWORD:
+        required: true
+
+      CURSE_API_KEY:
+        required: true
+
+      CROWDIN_API_KEY:
+        required: true
+
+      GRADLE_ENCRYPTION_KEY:
+        required: true
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  compute-version:
+    name: Compute version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_tag: ${{ steps.version.outputs.version_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        if: inputs.version_task
+        with:
+          fetch-depth: 1000
+          fetch-tags: true
+      - name: Git Semantic Version
+        id: version
+        uses: PaulHatch/semantic-version@v5.4.0
+        with:
+          bump_each_commit: true
+
+
+  notify-build-start:
+    needs: ["compute-version"]
+    name: Build notifications (start)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: neoforged/action-webhooks@v1
+        name: Send Discord start notification
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+          status: 'started'
+          version: ${{ needs.compute-version.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: neoforged/action-github-status@v1
+        name: Set pending status
+        with:
+          authToken: ${{secrets.GITHUB_TOKEN}}
+          context: 'Publishing'
+          state: 'pending'
+          description: "Version: ${{ needs.compute-version.outputs.version }}"
+          target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+  gradle:
+    needs: ["compute-version"] # Make sure we now the version before starting to build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1000
+          fetch-tags: true
+
+      - name: Make Gradle executable
+        # language=bash
+        run: chmod +x ./gradlew # Thanks Windows
+
+      - name: Setup Java ${{ inputs.java }}
+        # https://github.com/actions/runner-images/blob/main/images/linux/Ubuntu2204-Readme.md#java
+        # language=bash
+        run: |
+          echo "JAVA_HOME=$(echo $JAVA_HOME_${{ inputs.java }}_X64)" >> "$GITHUB_ENV"
+
+      - name: Gradle ${{ inputs.gradle_tasks }}
+        uses: gradle/setup-gradle@v4
+        with:
+          gradle-version: wrapper
+          arguments: ${{ inputs.gradle_tasks }}
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+        env:
+          LDTTeamJfrogUsername: ${{ secrets.MAVEN_USER }}
+          LDTTeamJfrogPassword: ${{ secrets.MAVEN_PASSWORD }}
+          CURSEAPIKEY: ${{ secrets.CURSE_API_KEY }}
+          CURSERELEASETYPE: ${{ inputs.curse_release_type }}
+          crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
+          Version: ${{ needs.compute-version.outputs.version }}
+
+
+  notify-build-end:
+    name: Build notifications (end)
+    needs: [ "compute-version", "notify-build-start", "gradle" ]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: neoforged/action-webhooks@v1
+        name: Send Discord end notification
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ needs.gradle.result }}
+          version: ${{ needs.compute-version.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: neoforged/action-github-status@v1
+        name: Set build status
+        with:
+          authToken: ${{ secrets.GITHUB_TOKEN }}
+          context: 'Publishing'
+          state: ${{ needs.gradle.result }}
+          description: "Version: ${{ needs.compute-version.outputs.version }}"
+          target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

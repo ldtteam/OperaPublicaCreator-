@@ -1098,7 +1098,10 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
         }
 
         dependsOn tasks.createChangelog
+        dependsOn tasks.build
     }
+
+    tasks.publish.dependsOn curseforge
 }
 else
 {
