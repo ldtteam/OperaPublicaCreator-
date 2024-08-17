@@ -239,7 +239,7 @@ apply plugin: 'idea'
 apply plugin: 'eclipse'
 
 repositories {
-    jcenter()
+    mavenLocal()
     mavenCentral()
     maven {
         name 'LDTTeam - Modding'
