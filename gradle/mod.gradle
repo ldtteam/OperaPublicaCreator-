@@ -21,6 +21,8 @@ buildscript {
         classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:3.3"
         classpath 'org.parchmentmc:librarian:1.+'
         classpath 'org.ajoberstar.grgit:grgit-gradle:5.2.0'
+        classpath 'org.ajoberstar:grgit:3.3'
+        classpath 'net.darkhax.curseforgegradle:CurseForgeGradle:1.1.17'
     }
 }
 
@@ -217,7 +219,7 @@ if (opc.isFeatureEnabled("jarJar")) {
 if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
         && (opc.hasPropertySet("curseApiKey") || opc.hasPropertySet("CURSEAPIKEY"))
         && (opc.hasPropertySet("curseReleaseType") || opc.hasPropertySet("CURSERELEASETYPE"))) {
-    apply plugin: com.matthewprenger.cursegradle.CurseGradlePlugin
+    apply plugin: net.darkhax.curseforgegradle.CurseForgeGradlePlugin
 }
 apply plugin: net.minecraftforge.gradle.userdev.UserDevPlugin
 
@@ -250,12 +252,14 @@ static HashSet<String> newSet(String... members) {
     return set;
 }
 
-ext.git = [
-        repositry: new Object(),
-        branch: new Object()
-]
-ext.git.repository = org.ajoberstar.grgit.Grgit.open(currentDir: file('.'))
-ext.git.branch = git.repository.branch.getCurrent()
+if (opc.isFeatureEnabled("GitInformation")) {
+    ext.git = [
+            repositry: new Object(),
+            branch: new Object()
+    ]
+    ext.git.repository = org.ajoberstar.grgit.Grgit.open(currentDir: file('.'))
+    ext.git.branch = git.repository.branch.getCurrent()
+}
 
 group = project.modGroup
 
@@ -763,10 +767,17 @@ if (project.hasProperty("isFMLLibrary") && project.isFMLLibrary.toString().toLow
 }
 
 processResources {
-    outputs.upToDateWhen { false }
-
     if (!opc.isFeatureDisabled("resourceDataExpansionFromProjectKeys")) {
         def props = new HashMap<>(project.properties)
+
+        def keys = new ArrayList<String>(props.keySet())
+
+        for (String key : keys) {
+            if (!(props.get(key) instanceof String) && !(props.get(key) instanceof Integer)) {
+                props.remove(key)
+            }
+        }
+
         props.put("version", rootProject.version)
 
         if (opc.isFeatureEnabled("additionalVersionInjectionIntoModsToml")) {
@@ -776,11 +787,29 @@ processResources {
             if (minimalSupportedVersion != "") {
                 props.put("mcVersion", "[${minimalSupportedVersion}, ${project.minecraftVersion}]");
             }
+
+            props.put("forgeVersion", "[${opc.getProperty("forgeVersion")},)")
+            if (opc.hasPropertySet("forgeMinVersion")) {
+                props.put("forgeVersion", "[${opc.getProperty("forgeMinVersion")},)")
+            }
         }
 
-        filesMatching ('**/mods.toml') {
-            expand props
+        String[] fileMatchingPatterns = opc.getStringListProperty("resourceProcessingPatterns")
+        if (fileMatchingPatterns.length == 0) {
+            if (opc.isFeatureEnabled("allResourcesInterpolation")) {
+                fileMatchingPatterns = ["**/*"]
+            } else {
+                fileMatchingPatterns = ["**/**.mods.toml"]
+            }
         }
+
+        for (final def pattern in fileMatchingPatterns) {
+            filesMatching(pattern) {
+                expand props
+            }
+        }
+
+        getInputs().properties(props)
     }
 }
 
@@ -993,6 +1022,8 @@ publishing {
 
             artifactId project.modId
 
+            suppressAllPomMetadataWarnings()
+
             publishableSourceSets.forEach(sourceSetName -> {
                 String javaDocTaskName = sourceSetName + "PackageJavadoc"
                 String jarTaskName = sourceSetName + "Jar"
@@ -1110,107 +1141,75 @@ task setupCIWorkspace {
 if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
         && (opc.hasPropertySet("curseApiKey") || opc.hasPropertySet("CURSEAPIKEY"))
         && (opc.hasPropertySet("curseReleaseType") || opc.hasPropertySet("CURSERELEASETYPE"))) {
-    project.curseforge { cf ->
-        cf.apiKey = opc.hasPropertySet("curseApiKey") ? opc.getProperty("curseApiKey") : opc.getProperty("CURSEAPIKEY")
 
-        project { cp ->
-            cp.id = opc.getProperty("curseId")
-            cp.addGameVersion(project.exactMinecraftVersion)
-            cp.changelog = file('build/changelog.md')
-            cp.changelogType = 'markdown'
-            cp.releaseType = opc.hasPropertySet("curseReleaseType") ? opc.getProperty("curseReleaseType") : opc.getProperty("CURSERELEASETYPE")
+    task curseforge(type: net.darkhax.curseforgegradle.TaskPublishCurseForge) {
+        apiToken = opc.hasPropertySet("curseApiKey") ? opc.getProperty("curseApiKey") : opc.getProperty("CURSEAPIKEY")
 
-            opc.getStringListProperty("additionalMinecraftVersions").each { v ->
-                cp.addGameVersion(v)
+        def projectId = opc.getProperty("curseId")
+        def mainArtifact = null
+        if (projectUsesShadowing) {
+            mainArtifact = upload(projectId, shadowJar)
+        } else if (projectUsesJarJar) {
+            mainArtifact = upload(projectId, tasks.jarJar)
+        } else {
+            mainArtifact = upload(projectId, jar)
+        }
+
+        opc.getStringListProperty("additionalMinecraftVersions").each { v ->
+            mainArtifact.addGameVersion(v)
+        }
+
+        mainArtifact.releaseType = opc.hasPropertySet("curseReleaseType") ? opc.getProperty("curseReleaseType") : opc.getProperty("CURSERELEASETYPE")
+        if (opc.isFeatureEnabled('reformatedCurseFiles')) {
+            def mainArtifactName = rootProject.name
+            if (opc.isFeatureEnabled('customCurseFileName')) {
+                mainArtifactName = opc.getProperty('customCurseFileName')
             }
 
-            if (projectUsesShadowing) {
-                cp.mainArtifact(shadowJar)
-            } else if (projectUsesJarJar) {
-                cp.mainArtifact(tasks.jarJar)
-            } else {
-                cp.mainArtifact(jar)
+            mainArtifact.displayName = mainArtifactName + " - " + project.version + " - " + mainArtifact.releaseType
+        }
+
+        mainArtifact.changelog = project.rootProject.file("changelog.md")
+        mainArtifact.changelogType = 'markdown'
+
+        publishableSourceSets.forEach(sourceSetName -> {
+            def sourceSet = project.sourceSets[sourceSetName]
+
+            String javaDocTaskName = sourceSet.getJavadocJarTaskName()
+            String jarTaskName = sourceSet.getJarTaskName()
+            String sourceTaskName = sourceSet.getSourcesJarTaskName()
+
+            mainArtifact.withAdditionalFile(project.tasks[javaDocTaskName])
+            if (sourceSetName != "main" || projectUsesShadowing) {
+                mainArtifact.withAdditionalFile(project.tasks[jarTaskName])
+            }
+            mainArtifact.withAdditionalFile(project.tasks[sourceTaskName])
+        })
+
+        if (opc.hasPropertySet("requiredCurseDependencies") || opc.hasPropertySet("optionalCurseDependencies")) {
+            if (opc.hasPropertySet("requiredCurseDependencies")) {
+                opc.getStringListProperty("requiredCurseDependencies").each {depId ->
+                    mainArtifact.addRequirement depId
+                }
             }
 
-            publishableSourceSets.forEach(sourceSetName -> {
-                String javaDocTaskName = sourceSetName + "PackageJavadoc"
-                String jarTaskName = sourceSetName + "Jar"
-                String sourceTaskName = sourceSetName + "Sources"
-                if (sourceSetName == "main") {
-                    javaDocTaskName = "packageJavadoc"
-                    jarTaskName = "jar"
-                    sourceTaskName = "sourcesJar"
-                }
-
-                cp.addArtifact(project.tasks[javaDocTaskName])
-                if (sourceSetName != "main" || projectUsesShadowing) {
-                    cp.addArtifact(project.tasks[jarTaskName])
-                }
-                cp.addArtifact(project.tasks[sourceTaskName])
-            })
-
-            if (opc.hasPropertySet("requiredCurseDependencies") || opc.hasPropertySet("optionalCurseDependencies")) {
-                cp.relations { relSpec ->
-                    if (opc.hasPropertySet("requiredCurseDependencies")) {
-                        opc.getStringListProperty("requiredCurseDependencies").each {depId ->
-                            relSpec.requiredDependency depId
-                        }
-                    }
-
-                    if (opc.hasPropertySet("optionalCurseDependencies")) {
-                        opc.getStringListProperty("optionalCurseDependencies").each {depId ->
-                            relSpec.optionalDependency depId
-                        }
-                    }
+            if (opc.hasPropertySet("optionalCurseDependencies")) {
+                opc.getStringListProperty("optionalCurseDependencies").each {depId ->
+                    mainArtifact.addOptional depId
                 }
             }
         }
+
+        dependsOn tasks.build
     }
 
-    task("createChangelog") {
-        group = 'upload'
-
-        doLast {
-            def teamCityURL = "https://buildsystem.ldtteam.com/"
-            project.rootProject.file("build/changelog.md").parentFile.mkdirs()
-            def file = new FileOutputStream(project.rootProject.file("build/changelog.md"))
-            def out = new BufferedOutputStream(file)
-            def changesXML = new XmlSlurper().parse(teamCityURL + "guestAuth/app/rest/changes?locator=build:(id:" + teamcity["teamcity.build.id"] + ")")
-
-            def changes = changesXML.change
-            out << "# ${opc.capitalize(project.modId)} Changelog \n"
-            out << "## Version: _" + version + "_ \n"
-
-            if (opc.hasPropertySet("customChangelogHeader")) {
-                out << opc.getProperty("customChangelogHeader") + "\n"
-            }
-
-            out << "### Changes: \n"
-            if (changes.size() > 0) {
-                for (int i = 0; i < changes.size(); i++) {
-                    def changeDetailsURL = teamCityURL + "guestAuth/app/rest/changes/id:" + changes[i].@id.text()
-                    def changeDetailsXml = new XmlSlurper().parse(changeDetailsURL)
-                    def changeComment = changeDetailsXml.comment.text().trim()
-
-                    out << "* " + changeComment + "\n"
-                }
-            } else {
-                out << "_No Changes detected!_"
-            }
-
-            out.close()
-        }
-    }
+    tasks.publish.dependsOn curseforge
 }
 else
 {
     project.logger.lifecycle("Deactivating curse. Feature state: " + opc.isFeatureEnabled("curse") + " project id supplied: " + opc.hasPropertySet("curseId") + " api key supplied: " + (opc.hasPropertySet("curseApiKey") || opc.hasPropertySet("CURSEAPIKEY")) + " release type defined: " + (opc.hasPropertySet("curseReleaseType") || opc.hasPropertySet("CURSERELEASETYPE")))
 
     task("curseforge") {
-        //Noop
-    }
-
-    task("createChangelog") {
         //Noop
     }
 }

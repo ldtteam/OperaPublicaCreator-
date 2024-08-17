@@ -1,0 +1,75 @@
+# Based off https://github.com/MinecraftForge/SharedActions/blob/main/.github/workflows/gradle.yml
+name: Gradle Building CI
+
+on:
+  workflow_call:
+    inputs:
+      java:
+        description: "The version of Java to use to run Gradle" # Note: Gradle's Java toolchains feature is used for compiling, which is separate from this
+        required: false
+        type: string
+        default: "21"
+      gradle_tasks:
+        description: "The Gradle task(s) to run at publication"
+        required: false
+        type: string
+        default: "build"
+    secrets:
+      CROWDIN_API_KEY:
+        required: true
+
+      GRADLE_ENCRYPTION_KEY:
+        required: true
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  compute-version:
+    name: Compute version
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_tag: ${{ steps.version.outputs.version_tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Git Semantic Version
+        id: version
+        uses: PaulHatch/semantic-version@v5.4.0
+        with:
+          tag_prefix: "v"
+          search_commit_body: true
+          debug: true
+          bump_each_commit: true
+          version_format: "${major}.${minor}.${patch}-pr"
+
+  gradle:
+    needs: ["compute-version"] # Make sure we now the version before starting to build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1000
+          fetch-tags: true
+
+      - name: Setup Java ${{ inputs.java }}
+        # https://github.com/actions/runner-images/blob/main/images/linux/Ubuntu2204-Readme.md#java
+        # language=bash
+        run: |
+          echo "JAVA_HOME=$(echo $JAVA_HOME_${{ inputs.java }}_X64)" >> "$GITHUB_ENV"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: wrapper
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+
+      - name: Run build
+        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
+        env:
+          crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
+          Version: ${{ needs.compute-version.outputs.version }}
