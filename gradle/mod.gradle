@@ -1003,42 +1003,6 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
         && (opc.hasPropertySet("curseApiKey") || opc.hasPropertySet("CURSEAPIKEY"))
         && (opc.hasPropertySet("curseReleaseType") || opc.hasPropertySet("CURSERELEASETYPE"))) {
 
-
-    task("createChangelog") {
-        group = 'upload'
-
-        doLast {
-            def teamCityURL = "https://buildsystem.ldtteam.com/"
-            project.rootProject.file("build/changelog.md").parentFile.mkdirs()
-            def file = new FileOutputStream(project.rootProject.file("build/changelog.md"))
-            def out = new BufferedOutputStream(file)
-            def changesXML = new XmlSlurper().parse(teamCityURL + "guestAuth/app/rest/changes?locator=build:(id:" + teamcity["teamcity.build.id"] + ")")
-
-            def changes = changesXML.change
-            out << "# ${opc.capitalize(project.modId)} Changelog \n"
-            out << "## Version: _" + version + "_ \n"
-
-            if (opc.hasPropertySet("customChangelogHeader")) {
-                out << opc.getProperty("customChangelogHeader") + "\n"
-            }
-
-            out << "### Changes: \n"
-            if (changes.size() > 0) {
-                for (int i = 0; i < changes.size(); i++) {
-                    def changeDetailsURL = teamCityURL + "guestAuth/app/rest/changes/id:" + changes[i].@id.text()
-                    def changeDetailsXml = new XmlSlurper().parse(changeDetailsURL)
-                    def changeComment = changeDetailsXml.comment.text().trim()
-
-                    out << "* " + changeComment + "\n"
-                }
-            } else {
-                out << "_No Changes detected!_"
-            }
-
-            out.close()
-        }
-    }
-
     task curseforge(type: net.darkhax.curseforgegradle.TaskPublishCurseForge) {
         apiToken = opc.hasPropertySet("curseApiKey") ? opc.getProperty("curseApiKey") : opc.getProperty("CURSEAPIKEY")
 
@@ -1066,7 +1030,7 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
             mainArtifact.displayName = mainArtifactName + " - " + project.version + " - " + mainArtifact.releaseType
         }
 
-        mainArtifact.changelog = project.rootProject.file("build/changelog.md")
+        mainArtifact.changelog = project.rootProject.file("changelog.md")
         mainArtifact.changelogType = 'markdown'
 
         publishableSourceSets.forEach(sourceSetName -> {
@@ -1097,7 +1061,6 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
             }
         }
 
-        dependsOn tasks.createChangelog
         dependsOn tasks.build
     }
 
@@ -1108,10 +1071,6 @@ else
     project.logger.lifecycle("Deactivating curse. Feature state: " + opc.isFeatureEnabled("curse") + " project id supplied: " + opc.hasPropertySet("curseId") + " api key supplied: " + (opc.hasPropertySet("curseApiKey") || opc.hasPropertySet("CURSEAPIKEY")) + " release type defined: " + (opc.hasPropertySet("curseReleaseType") || opc.hasPropertySet("CURSERELEASETYPE")))
 
     task("curseforge") {
-        //Noop
-    }
-
-    task("createChangelog") {
         //Noop
     }
 }

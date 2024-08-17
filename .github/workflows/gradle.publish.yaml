@@ -1,5 +1,5 @@
 # Based off https://github.com/MinecraftForge/SharedActions/blob/main/.github/workflows/gradle.yml
-name: Gradle publishing CI
+name: Gradle Publishing CI
 
 on:
   workflow_call:
@@ -38,7 +38,7 @@ on:
         required: true
 
 permissions:
-  contents: read
+  contents: write
   statuses: write
 
 jobs:
@@ -50,15 +50,18 @@ jobs:
       version_tag: ${{ steps.version.outputs.version_tag }}
     steps:
       - uses: actions/checkout@v4
-        if: inputs.version_task
         with:
-          fetch-depth: 1000
+          fetch-depth: 0
           fetch-tags: true
       - name: Git Semantic Version
         id: version
         uses: PaulHatch/semantic-version@v5.4.0
         with:
+          tag_prefix: "v"
+          search_commit_body: true
+          debug: true
           bump_each_commit: true
+          version_format: "${major}.${minor}.${patch}-${{ inputs.curse_release_type }}"
 
 
   notify-build-start:
@@ -92,30 +95,47 @@ jobs:
           fetch-depth: 1000
           fetch-tags: true
 
-      - name: Make Gradle executable
-        # language=bash
-        run: chmod +x ./gradlew # Thanks Windows
-
       - name: Setup Java ${{ inputs.java }}
         # https://github.com/actions/runner-images/blob/main/images/linux/Ubuntu2204-Readme.md#java
         # language=bash
         run: |
           echo "JAVA_HOME=$(echo $JAVA_HOME_${{ inputs.java }}_X64)" >> "$GITHUB_ENV"
 
-      - name: Gradle ${{ inputs.gradle_tasks }}
-        uses: gradle/setup-gradle@v4
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: wrapper
-          arguments: ${{ inputs.gradle_tasks }}
+          dependency-graph: generate-and-submit
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
+
+      - name: "✏️ Generate release changelog"
+        id: generate-release-changelog
+        uses: heinrichreimer/action-github-changelog-generator@v2.4
+        with:
+          output: changelog.md
+          token: ${{ secrets.GITHUB_TOKEN }}
+          stripGeneratorNotice: "true"
+          onlyLastTag: true
+
+      - name: Run build
+        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
         env:
           LDTTeamJfrogUsername: ${{ secrets.MAVEN_USER }}
           LDTTeamJfrogPassword: ${{ secrets.MAVEN_PASSWORD }}
-          CURSEAPIKEY: ${{ secrets.CURSE_API_KEY }}
-          CURSERELEASETYPE: ${{ inputs.curse_release_type }}
+          CURSE_API_KEY: ${{ secrets.CURSE_API_KEY }}
+          CURSE_RELEASE_TYPE: ${{ inputs.curse_release_type }}
           crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
           Version: ${{ needs.compute-version.outputs.version }}
 
+      - name: "🚀 Create GitHub release"
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.compute-version.outputs.version }}
+          release_name: Release ${{ needs.compute-version.outputs.version }}
+          body_path: changelog.md
+          prerelease: ${{ inputs.curse_release_type != 'release' }}
 
   notify-build-end:
     name: Build notifications (end)
