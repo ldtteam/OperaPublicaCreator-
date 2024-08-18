@@ -32,13 +32,24 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       version_tag: ${{ steps.version.outputs.version_tag }}
+      minecraft_version: ${{ steps.minecraftVersion.outputs.minecraft_version }}
     steps:
-      - uses: actions/checkout@v4
+      - id: checkout
+        name: "📦 Checkout"
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
-      - name: Git Semantic Version
-        id: version
+
+      - id: minecraftVersion
+        name: "📦 Extract Minecraft version"
+        run: |
+          cat gradle.properties | grep exactMinecraftVersion | cut -d "=" -f 2 > minecraft_version.txt
+          echo "Minecraft version: $(cat minecraft_version.txt)"
+          echo "::set-output name=minecraft_version::$(cat minecraft_version.txt)"  
+
+      - id: version
+        name: "🔢 Compute version"
         uses: PaulHatch/semantic-version@v5.4.0
         with:
           tag_prefix: "v"
@@ -51,25 +62,30 @@ jobs:
     needs: ["compute-version"] # Make sure we now the version before starting to build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - id: checkout
+        name: "📦 Checkout"
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1000
           fetch-tags: true
 
-      - name: Setup Java ${{ inputs.java }}
+      - id: setupJava
+        name: "🔧 Setup Java"
         # https://github.com/actions/runner-images/blob/main/images/linux/Ubuntu2204-Readme.md#java
         # language=bash
         run: |
           echo "JAVA_HOME=$(echo $JAVA_HOME_${{ inputs.java }}_X64)" >> "$GITHUB_ENV"
 
-      - name: Setup Gradle
+      - id: setupGradle
+        name: "🔧 Setup Gradle"
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: wrapper
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
-      - name: Run build
+      - id: build
+        name: "🏗️ Build"
         run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
         env:
           crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
-          Version: ${{ needs.compute-version.outputs.version }}
+          Version: "${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}"
