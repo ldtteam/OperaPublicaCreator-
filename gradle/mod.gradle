@@ -801,7 +801,7 @@ processResources {
             if (opc.isFeatureEnabled("allResourcesInterpolation")) {
                 fileMatchingPatterns = ["**/*"]
             } else {
-                fileMatchingPatterns = ["**/**.mods.toml"]
+                fileMatchingPatterns = ["**/**.mods.toml", "**/mods.toml"]
             }
         }
 
