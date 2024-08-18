@@ -1193,6 +1193,11 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
             String javaDocTaskName = sourceSet.getJavadocJarTaskName()
             String jarTaskName = sourceSet.getJarTaskName()
             String sourceTaskName = sourceSet.getSourcesJarTaskName()
+            if (sourceSetName == "main") {
+                javaDocTaskName = "packageJavadoc"
+                jarTaskName = "jar"
+                sourceTaskName = "sourcesJar"
+            }
 
             mainArtifact.withAdditionalFile(project.tasks[javaDocTaskName])
             if (sourceSetName != "main" || projectUsesShadowing) {
