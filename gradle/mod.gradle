@@ -981,15 +981,15 @@ publishing {
         }
     }
 
-    if (opc.hasPropertySet(githubRepository) && opc.hasPropertySet(githubUsername) && opc.hasPropertySet(githubToken)) {
+    if (opc.hasPropertySet("githubRepository") && opc.hasPropertySet("githubUsername") && opc.hasPropertySet("githubToken")) {
         repositories {
             maven {
                 name 'GitHubPackages'
                 credentials {
-                    username opc.getProperty(githubUsername)
-                    password opc.getProperty(githubToken)
+                    username opc.getProperty("githubUsername")
+                    password opc.getProperty("githubToken")
                 }
-                url "https://maven.pkg.github.com/${opc.getProperty(githubRepository)}"
+                url "https://maven.pkg.github.com/${opc.getProperty("githubRepository")}"
             }
         }
     }
