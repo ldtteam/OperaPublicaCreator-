@@ -19,6 +19,12 @@ on:
         required: false
         type: string
         default: "beta"
+      changelog_max_issues:
+        description: "The maximum number of issues to include in the changelog"
+        required: false
+        type: number
+        default: 100
+
     secrets:
       DISCORD_WEBHOOK:
         required: true
@@ -48,13 +54,24 @@ jobs:
     outputs:
       version: ${{ steps.version.outputs.version }}
       version_tag: ${{ steps.version.outputs.version_tag }}
+      minecraft_version: ${{ steps.minecraftVersion.outputs.minecraft_version }}
     steps:
-      - uses: actions/checkout@v4
+      - id: checkout
+        name: "📦 Checkout"
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
-      - name: Git Semantic Version
-        id: version
+
+      - id: minecraftVersion
+        name: "📦 Extract Minecraft version"
+        run: |
+          cat gradle.properties | grep exactMinecraftVersion | cut -d "=" -f 2 > minecraft_version.txt
+          echo "Minecraft version: $(cat minecraft_version.txt)"
+          echo "::set-output name=minecraft_version::$(cat minecraft_version.txt)"  
+
+      - id: version
+        name: "🔢 Compute version"
         uses: PaulHatch/semantic-version@v5.4.0
         with:
           tag_prefix: "v"
@@ -63,61 +80,67 @@ jobs:
           bump_each_commit: true
           version_format: "${major}.${minor}.${patch}-${{ inputs.curse_release_type }}"
 
-
   notify-build-start:
     needs: ["compute-version"]
-    name: Build notifications (start)
+    name: "🔴 Build notifications (start)"
     runs-on: ubuntu-latest
     steps:
       - uses: neoforged/action-webhooks@v1
-        name: Send Discord start notification
+        name: "🔴 Send Discord start notification"
         with:
           webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
           status: 'started'
-          version: ${{ needs.compute-version.outputs.version }}
+          version: "${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - uses: neoforged/action-github-status@v1
-        name: Set pending status
+        name: "🚧 Set pending status"
         with:
           authToken: ${{secrets.GITHUB_TOKEN}}
           context: 'Publishing'
           state: 'pending'
-          description: "Version: ${{ needs.compute-version.outputs.version }}"
+          description: "Version: ${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}"
           target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   gradle:
     needs: ["compute-version"] # Make sure we now the version before starting to build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - id: checkout
+        name: "📦 Checkout"
+        uses: actions/checkout@v4
         with:
           fetch-depth: 1000
           fetch-tags: true
 
-      - name: Setup Java ${{ inputs.java }}
+      - id: setupJava
+        name: "🔧 Setup Java"
         # https://github.com/actions/runner-images/blob/main/images/linux/Ubuntu2204-Readme.md#java
         # language=bash
         run: |
           echo "JAVA_HOME=$(echo $JAVA_HOME_${{ inputs.java }}_X64)" >> "$GITHUB_ENV"
 
-      - name: Setup Gradle
+      - id: setupGradle
+        name: "🔧 Setup Gradle"
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: wrapper
           dependency-graph: generate-and-submit
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
-      - name: "✏️ Generate release changelog"
-        id: generate-release-changelog
+      - id: generate-release-changelog
+        name: "📝 Generate release changelog"
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
           output: changelog.md
           token: ${{ secrets.GITHUB_TOKEN }}
           stripGeneratorNotice: "true"
           onlyLastTag: true
+          maxIssues: ${{ inputs.changelog_max_issues }}
 
-      - name: Run build
+      - id: publish
+        name: "🚀 Publish"
         run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
         env:
           LDTTeamJfrogUsername: ${{ secrets.MAVEN_USER }}
@@ -125,7 +148,7 @@ jobs:
           CURSE_API_KEY: ${{ secrets.CURSE_API_KEY }}
           CURSE_RELEASE_TYPE: ${{ inputs.curse_release_type }}
           crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
-          Version: ${{ needs.compute-version.outputs.version }}
+          Version: "${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}"
 
       - name: "🚀 Create GitHub release"
         uses: actions/create-release@v1
@@ -133,7 +156,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.compute-version.outputs.version }}
-          release_name: Release ${{ needs.compute-version.outputs.version }}
+          release_name: "Release ${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}"
           body_path: changelog.md
           prerelease: ${{ inputs.curse_release_type != 'release' }}
 
@@ -144,18 +167,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: neoforged/action-webhooks@v1
-        name: Send Discord end notification
+        name: "🔴 Send Discord end notification"
         with:
           webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ needs.gradle.result }}
-          version: ${{ needs.compute-version.outputs.version }}
+          version: "${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: neoforged/action-github-status@v1
-        name: Set build status
+        name: "🚧 Set build status"
         with:
           authToken: ${{ secrets.GITHUB_TOKEN }}
           context: 'Publishing'
           state: ${{ needs.gradle.result }}
-          description: "Version: ${{ needs.compute-version.outputs.version }}"
+          description: "Version: ${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}"
           target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
