@@ -54,7 +54,7 @@ jobs:
         if: github.event_name == 'push'
         run: |
           gitRef="${{ github.ref }}"
-          branchName = $(echo "${gitRef/refs\/heads\//}")
+          branchName=$(echo "${gitRef/refs\/heads\//}")
           echo "Branch name: $branchName"
           
           cleanedBranchName=$(echo $branchName | sed 's/[^a-zA-Z0-9]/-/g')
