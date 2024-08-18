@@ -132,6 +132,8 @@ jobs:
       - id: tagLocalBuild
         name: "🏷️ Tag local build"
         run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "maintainer+github@ldtteam.com"
           git tag -a ${{ needs.compute-version.outputs.version }} -m "Version ${{ needs.compute-version.outputs.version }}"
 
       - id: generate-release-changelog
