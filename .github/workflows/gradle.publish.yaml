@@ -68,7 +68,7 @@ jobs:
         run: |
           cat gradle.properties | grep exactMinecraftVersion | cut -d "=" -f 2 > minecraft_version.txt
           echo "Minecraft version: $(cat minecraft_version.txt)"
-          echo "::set-output name=minecraft_version::$(cat minecraft_version.txt)"  
+          echo "minecraft_version=$(cat minecraft_version.txt)" >> "$GITHUB_OUTPUT"  
 
       - id: version
         name: "🔢 Compute version"
@@ -78,7 +78,7 @@ jobs:
           search_commit_body: true
           debug: true
           bump_each_commit: true
-          version_format: "${major}.${minor}.${patch}-${{ inputs.curse_release_type }}"
+          version_format: "${major}.${minor}.${patch}-${{ needs.compute-version.outputs.minecraft_version }}-${{ inputs.curse_release_type }}"
 
   notify-build-start:
     needs: ["compute-version"]
@@ -90,7 +90,7 @@ jobs:
         with:
           webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
           status: 'started'
-          version: "${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}"
+          version: "${{ needs.compute-version.outputs.version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -100,7 +100,7 @@ jobs:
           authToken: ${{secrets.GITHUB_TOKEN}}
           context: 'Publishing'
           state: 'pending'
-          description: "Version: ${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}"
+          description: "Version: ${{ needs.compute-version.outputs.version }}"
           target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   gradle:
@@ -129,6 +129,11 @@ jobs:
           dependency-graph: generate-and-submit
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
+      - id: tagLocalBuild
+        name: "🏷️ Tag local build"
+        run: |
+          git tag -a ${{ needs.compute-version.outputs.version }} -m "Version ${{ needs.compute-version.outputs.version }}"
+
       - id: generate-release-changelog
         name: "📝 Generate release changelog"
         uses: heinrichreimer/action-github-changelog-generator@v2.4
@@ -148,7 +153,7 @@ jobs:
           CURSE_API_KEY: ${{ secrets.CURSE_API_KEY }}
           CURSE_RELEASE_TYPE: ${{ inputs.curse_release_type }}
           crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
-          Version: "${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}"
+          Version: "${{ needs.compute-version.outputs.version }}"
 
       - name: "🚀 Create GitHub release"
         uses: actions/create-release@v1
@@ -156,7 +161,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ needs.compute-version.outputs.version }}
-          release_name: "Release ${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}"
+          release_name: "Release ${{ needs.compute-version.outputs.version }}"
           body_path: changelog.md
           prerelease: ${{ inputs.curse_release_type != 'release' }}
 
@@ -171,7 +176,7 @@ jobs:
         with:
           webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ needs.gradle.result }}
-          version: "${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}"
+          version: "${{ needs.compute-version.outputs.version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: neoforged/action-github-status@v1
@@ -180,5 +185,5 @@ jobs:
           authToken: ${{ secrets.GITHUB_TOKEN }}
           context: 'Publishing'
           state: ${{ needs.gradle.result }}
-          description: "Version: ${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}"
+          description: "Version: ${{ needs.compute-version.outputs.version }}"
           target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
