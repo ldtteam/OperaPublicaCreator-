@@ -47,7 +47,7 @@ jobs:
         run: |
           cat gradle.properties | grep exactMinecraftVersion | cut -d "=" -f 2 > minecraft_version.txt
           echo "Minecraft version: $(cat minecraft_version.txt)"
-          echo "::set-output name=minecraft_version::$(cat minecraft_version.txt)"  
+          echo "minecraft_version=$(cat minecraft_version.txt)" >> "$GITHUB_OUTPUT"
 
       - id: version
         name: "🔢 Compute version"
@@ -57,7 +57,7 @@ jobs:
           search_commit_body: true
           debug: true
           bump_each_commit: true
-          version_format: "${major}.${minor}.${patch}-${{ needs.compute-version.outputs.minecraft_version }}-pr"
+          version_format: "${major}.${minor}.${patch}-${{ steps.minecraftVersion.outputs.minecraft_version }}-pr"
 
   gradle:
     needs: ["compute-version"] # Make sure we now the version before starting to build
