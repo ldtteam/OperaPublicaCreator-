@@ -14,9 +14,6 @@ on:
         required: false
         type: string
         default: "assemble"
-    secrets:
-      GRADLE_ENCRYPTION_KEY:
-        required: true
 
 permissions:
   contents: read
@@ -34,7 +31,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: wrapper
-          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - id: build
         name: "🏗️ Build"
