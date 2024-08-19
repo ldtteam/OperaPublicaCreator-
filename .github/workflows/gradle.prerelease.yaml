@@ -15,8 +15,6 @@ on:
         type: string
         default: "publish"
     secrets:
-      CROWDIN_API_KEY:
-        required: true
       GRADLE_ENCRYPTION_KEY:
         required: true
 
@@ -100,7 +98,6 @@ jobs:
         name: "🏗️ Build"
         run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
         env:
-          crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
           Version: "${{ needs.compute-version.outputs.version }}"
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
