@@ -1190,9 +1190,9 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
         publishableSourceSets.forEach(sourceSetName -> {
             def sourceSet = project.sourceSets[sourceSetName]
 
-            String javaDocTaskName = sourceSet.getJavadocJarTaskName()
-            String jarTaskName = sourceSet.getJarTaskName()
-            String sourceTaskName = sourceSet.getSourcesJarTaskName()
+            String javaDocTaskName = sourceSetName + "PackageJavadoc"
+            String jarTaskName = sourceSetName + "Jar"
+            String sourceTaskName = sourceSetName + "Sources"
             if (sourceSetName == "main") {
                 javaDocTaskName = "packageJavadoc"
                 jarTaskName = "jar"
