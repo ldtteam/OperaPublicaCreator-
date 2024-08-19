@@ -15,8 +15,6 @@ on:
         type: string
         default: "assemble"
     secrets:
-      CROWDIN_API_KEY:
-        required: true
       GRADLE_ENCRYPTION_KEY:
         required: true
 
