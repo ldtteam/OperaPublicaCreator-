@@ -14,6 +14,10 @@ on:
         required: false
         type: string
         default: "assemble"
+    secrets:
+      GRADLE_ENCRYPTION_KEY:
+        description: The AES key to enable Gradle cache encryption
+        required: false
 
 permissions:
   contents: read
@@ -31,6 +35,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: wrapper
+          cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
       - id: build
         name: "🏗️ Build"
