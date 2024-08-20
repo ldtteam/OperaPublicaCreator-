@@ -78,7 +78,7 @@ jobs:
           search_commit_body: true
           debug: true
           bump_each_commit: true
-          version_format: "${{ steps.minecraftVersion.outputs.minecraft_version }}-${major}.${minor}.${patch}-${{ inputs.curse_release_type }}"
+          version_format: "${major}.${minor}.${patch}-${{ steps.minecraftVersion.outputs.minecraft_version }}-${{ inputs.curse_release_type }}"
 
   notify-build-start:
     needs: ["compute-version"]

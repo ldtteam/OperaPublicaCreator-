@@ -68,7 +68,7 @@ jobs:
           search_commit_body: true
           debug: true
           bump_each_commit: true
-          version_format: "${{ steps.minecraftVersion.outputs.minecraft_version }}-${major}.${minor}.${patch}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || format('branch-{0}', steps.computeBranchSuffix.outputs.branch_suffix) }}"
+          version_format: "${major}.${minor}.${patch}-${{ steps.minecraftVersion.outputs.minecraft_version }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || format('branch-{0}', steps.computeBranchSuffix.outputs.branch_suffix) }}"
 
   gradle:
     needs: [ "compute-version" ] # Make sure we now the version before starting to build
