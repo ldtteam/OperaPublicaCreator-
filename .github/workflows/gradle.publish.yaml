@@ -44,12 +44,9 @@ permissions:
 
 jobs:
   compute-version:
-    name: Compute version
-    runs-on: ubuntu-latest
-    steps:
-      - uses: ldtteam/operapublicacreator/.github/workflows/gradle.version.yaml@${{ github.workflow_sha }}
-        with:
-          suffix: ${{ inputs.curse_release_type }}
+    uses: ldtteam/operapublicacreator/.github/workflows/gradle.version.yaml@${{ github.workflow_sha }}
+    with:
+      suffix: ${{ inputs.curse_release_type }}
 
   notify-build-start:
     needs: [ "compute-version" ]
