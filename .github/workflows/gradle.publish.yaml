@@ -44,7 +44,7 @@ permissions:
 
 jobs:
   compute-version:
-    uses: ldtteam/operapublicacreator/.github/workflows/gradle.version.yaml@${{ github.workflow_sha }}
+    uses: ./.github/workflows/gradle.version.yaml
     with:
       suffix: ${{ inputs.curse_release_type }}
 

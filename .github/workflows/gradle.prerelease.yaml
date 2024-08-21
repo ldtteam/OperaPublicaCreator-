@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   compute-version:
-    uses: ldtteam/operapublicacreator/.github/workflows/gradle.version.yaml@${{ github.workflow_sha }}
+    uses: ./.github/workflows/gradle.version.yaml
     with:
       suffix: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || format('branch-{0}', steps.computeBranchSuffix.outputs.branch_suffix) }}
 
