@@ -5,7 +5,7 @@ on:
   workflow_call:
     inputs:
       java:
-        description: "The version of Java to use to run Gradle" # Note: Gradle's Java toolchains feature is used for compiling, which is separate from this
+        description: "The version of Java to use to run Gradle"
         required: false
         type: string
         default: "21"
@@ -72,7 +72,7 @@ jobs:
           target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   gradle:
-    needs: [ "compute-version" ] # Make sure we now the version before starting to build
+    needs: [ "compute-version" ]
     runs-on: ubuntu-latest
     steps:
       - id: checkout
@@ -84,8 +84,6 @@ jobs:
 
       - id: setupJava
         name: "🔧 Setup Java"
-        # https://github.com/actions/runner-images/blob/main/images/linux/Ubuntu2204-Readme.md#java
-        # language=bash
         run: |
           echo "JAVA_HOME=$(echo $JAVA_HOME_${{ inputs.java }}_X64)" >> "$GITHUB_ENV"
 

@@ -37,19 +37,6 @@ jobs:
           echo "Minecraft version: $(cat minecraft_version.txt)"
           echo "minecraft_version=$(cat minecraft_version.txt)" >> "$GITHUB_OUTPUT"
 
-      - id: computeBranchSuffix
-        name: "🔢 Compute branch suffix"
-        if: github.event_name == 'push'
-        run: |
-          gitRef="${{ github.ref }}"
-          branchName=$(echo "${gitRef/refs\/heads\//}")
-          echo "Branch name: $branchName"
-          
-          cleanedBranchName=$(echo $branchName | sed 's/[^a-zA-Z0-9]/-/g')
-          echo "Cleaned branch name: $cleanedBranchName"
-          
-          echo "branch_suffix=$cleanedBranchName" >> "$GITHUB_OUTPUT"
-
       - id: version
         name: "🔢 Compute version"
         uses: PaulHatch/semantic-version@v5.4.0

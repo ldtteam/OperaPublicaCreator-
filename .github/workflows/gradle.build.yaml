@@ -5,7 +5,7 @@ on:
   workflow_call:
     inputs:
       java:
-        description: "The version of Java to use to run Gradle" # Note: Gradle's Java toolchains feature is used for compiling, which is separate from this
+        description: "The version of Java to use to run Gradle"
         required: false
         type: string
         default: "21"
@@ -23,12 +23,32 @@ permissions:
   contents: read
 
 jobs:
+  compute-suffix:
+    runs-on: ubuntu-latest
+    outputs:
+      branch_suffix: ${{ steps.computeBranchSuffix.outputs.branch_suffix }}
+    steps:
+      - id: computeBranchSuffix
+        name: "🔢 Compute branch suffix"
+        if: github.event_name == 'push'
+        run: |
+          gitRef="${{ github.ref }}"
+          branchName=$(echo "${gitRef/refs\/heads\//}")
+          echo "Branch name: $branchName"
+          
+          cleanedBranchName=$(echo $branchName | sed 's/[^a-zA-Z0-9]/-/g')
+          echo "Cleaned branch name: $cleanedBranchName"
+          
+          echo "branch_suffix=$cleanedBranchName" >> "$GITHUB_OUTPUT"
+
   compute-version:
+    needs: [ "compute-suffix" ]
     uses: ./.github/workflows/gradle.version.yaml
     with:
-      suffix: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || format('branch-{0}', steps.computeBranchSuffix.outputs.branch_suffix) }}
+      suffix: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || format('branch-{0}', needs.compute-suffix.outputs.branch_suffix) }}
 
   build:
+    needs: [ "compute-version" ]
     runs-on: ubuntu-latest
     steps:
       - id: checkout
