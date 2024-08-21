@@ -30,7 +30,6 @@ jobs:
     steps:
       - id: computeBranchSuffix
         name: "🔢 Compute branch suffix"
-        if: github.event_name == 'push'
         run: |
           gitRef="${{ github.ref }}"
           branchName=$(echo "${gitRef/refs\/heads\//}")
@@ -45,7 +44,7 @@ jobs:
     needs: [ "compute-suffix" ]
     uses: ./.github/workflows/gradle.version.yaml
     with:
-      suffix: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || format('branch-{0}', needs.compute-suffix.outputs.branch_suffix) }}
+      suffix: ${{ format('branch-{0}', needs.compute-suffix.outputs.branch_suffix) }}
 
   build:
     needs: [ "compute-version" ]
