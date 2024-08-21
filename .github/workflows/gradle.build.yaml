@@ -23,6 +23,14 @@ permissions:
   contents: read
 
 jobs:
+  compute-version:
+    name: Compute version
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ldtteam/operapublicacreator/.github/workflows/gradle.version.yaml@${{ github.workflow_sha }}
+        with:
+          suffix: ${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.number) || format('branch-{0}', steps.computeBranchSuffix.outputs.branch_suffix) }}
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -40,3 +48,5 @@ jobs:
       - id: build
         name: "🏗️ Build"
         run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
+        env:
+          Version: "${{ needs.compute-version.outputs.version }}"
