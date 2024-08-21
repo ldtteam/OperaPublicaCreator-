@@ -9,19 +9,18 @@ on:
         type: string
         default: ""
     outputs:
-      version: ${{ jobs.compute-version.outputs.version }}
-      minecraft_version: ${{ jobs.compute-version.outputs.minecraft_version }}
+      version:
+        description: "The computed version"
+        value: ${{ jobs.compute-version.outputs.version }}
 
 permissions:
   contents: read
 
 jobs:
   compute-version:
-    name: Compute version
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
-      minecraft_version: ${{ steps.minecraftVersion.outputs.minecraft_version }}
     steps:
       - id: checkout
         name: "📦 Checkout"
