@@ -1,5 +1,5 @@
 # Based off https://github.com/MinecraftForge/SharedActions/blob/main/.github/workflows/gradle.yml
-name: Gradle Building CI
+name: Gradle Pre-release CI
 
 on:
   workflow_call:
@@ -13,46 +13,35 @@ on:
         description: "The Gradle task(s) to run for building"
         required: false
         type: string
-        default: "build"
+        default: "publish"
     secrets:
       GRADLE_ENCRYPTION_KEY:
         description: The AES key to enable Gradle cache encryption
-        required: false
+        required: true
+      CROWDIN_API_KEY:
+        required: true
 
 permissions:
   contents: read
+  statuses: write
+  packages: write
 
 jobs:
-  compute-suffix:
-    runs-on: ubuntu-latest
-    outputs:
-      branch_suffix: ${{ steps.computeBranchSuffix.outputs.branch_suffix }}
-    steps:
-      - id: computeBranchSuffix
-        name: "🔢 Compute branch suffix"
-        run: |
-          gitRef="${{ github.ref }}"
-          branchName=$(echo "${gitRef/refs\/heads\//}")
-          echo "Branch name: $branchName"
-          
-          cleanedBranchName=$(echo $branchName | sed 's/[^a-zA-Z0-9]/-/g')
-          echo "Cleaned branch name: $cleanedBranchName"
-          
-          echo "branch_suffix=$cleanedBranchName" >> "$GITHUB_OUTPUT"
-
   compute-version:
-    needs: [ "compute-suffix" ]
     uses: ./.github/workflows/gradle.version.yaml
     with:
-      suffix: ${{ format('branch-{0}', needs.compute-suffix.outputs.branch_suffix) }}
+      suffix: pre-release
 
-  build:
+  gradle:
     needs: [ "compute-version" ]
     runs-on: ubuntu-latest
     steps:
       - id: checkout
         name: "📦 Checkout"
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1000
+          fetch-tags: true
 
       - id: setupJava
         name: "🔧 Setup Java"
@@ -70,4 +59,8 @@ jobs:
         name: "🏗️ Build"
         run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
         env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_USERNAME: ${{ github.actor }}
+          crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
           Version: "${{ needs.compute-version.outputs.version }}"

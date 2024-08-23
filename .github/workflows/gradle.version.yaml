@@ -1,0 +1,47 @@
+name: Common Version Determination CI
+
+on:
+  workflow_call:
+    inputs:
+      suffix:
+        description: "The suffix to finish the version string with"
+        required: false
+        type: string
+        default: ""
+    outputs:
+      version:
+        description: "The computed version"
+        value: ${{ jobs.compute-version.outputs.version }}
+
+permissions:
+  contents: read
+
+jobs:
+  compute-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - id: checkout
+        name: "📦 Checkout"
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - id: minecraftVersion
+        name: "📦 Extract Minecraft version"
+        run: |
+          cat gradle.properties | grep exactMinecraftVersion | cut -d "=" -f 2 > minecraft_version.txt
+          echo "Minecraft version: $(cat minecraft_version.txt)"
+          echo "minecraft_version=$(cat minecraft_version.txt)" >> "$GITHUB_OUTPUT"
+
+      - id: version
+        name: "🔢 Compute version"
+        uses: PaulHatch/semantic-version@v5.4.0
+        with:
+          tag_prefix: "v"
+          search_commit_body: true
+          debug: true
+          bump_each_commit: true
+          version_format: "${{ steps.minecraftVersion.outputs.minecraft_version }}-${major}.${minor}.${patch}-${{ inputs.suffix }}"
