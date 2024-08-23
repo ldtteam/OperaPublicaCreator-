@@ -36,6 +36,7 @@ on:
       CROWDIN_API_KEY:
         required: true
       GRADLE_ENCRYPTION_KEY:
+        description: The AES key to enable Gradle cache encryption
         required: true
 
 permissions:
