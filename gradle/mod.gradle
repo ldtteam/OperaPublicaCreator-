@@ -1160,13 +1160,6 @@ tasks.register('getProjectName', Task.class) {
     }
 }
 
-// TODO: REMOVE
-tasks.register('testArtifactName', Task.class) {
-    doLast {
-        println opc.getProperty('customCurseFileName') + " - " + project.version
-    }
-}
-
 if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translationMergeSources") && opc.hasPropertySet("translationMergeDestination")) {
     task mergeTranslations {
         doLast {
