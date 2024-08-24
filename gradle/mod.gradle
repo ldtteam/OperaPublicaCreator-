@@ -1155,12 +1155,16 @@ tasks.withType(Jar.class, {task ->
 })
 
 tasks.register('getProjectName', Task.class) {
-    print rootProject.name
+    doLast {
+        print rootProject.name
+    }
 }
 
 // TODO: REMOVE
 tasks.register('testArtifactName', Task.class) {
-    println opc.getProperty('customCurseFileName') + " - " + project.version
+    doLast {
+        println opc.getProperty('customCurseFileName') + " - " + project.version
+    }
 }
 
 if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translationMergeSources") && opc.hasPropertySet("translationMergeDestination")) {
