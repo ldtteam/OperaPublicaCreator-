@@ -68,6 +68,7 @@ jobs:
 
       - id: build
         name: "🏗️ Build"
-        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
+        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }} testArtifactName # TODO: REMOVE
         env:
+          CUSTOM_CURSE_FILE_NAME: "Minecolonies - ${{ needs.compute-version.outputs.minecraft_version }}" # TODO: REMOVE
           Version: "${{ needs.compute-version.outputs.version }}"
