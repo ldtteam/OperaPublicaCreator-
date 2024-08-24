@@ -1154,14 +1154,14 @@ tasks.withType(Jar.class, {task ->
     task.duplicatesStrategy 'exclude'
 })
 
-tasks.named('getProjectName', Task.class, { task ->
+tasks.register('getProjectName', Task.class) {
     print rootProject.name
-})
+}
 
 // TODO: REMOVE
-tasks.named('testArtifactName', Task.class, { task ->
+tasks.register('testArtifactName', Task.class) {
     println opc.getProperty('customCurseFileName') + " - " + project.version
-})
+}
 
 if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translationMergeSources") && opc.hasPropertySet("translationMergeDestination")) {
     task mergeTranslations {
