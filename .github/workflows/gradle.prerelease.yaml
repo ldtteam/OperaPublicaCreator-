@@ -29,8 +29,6 @@ permissions:
 jobs:
   compute-version:
     uses: ./.github/workflows/gradle.version.yaml
-    with:
-      suffix: pre-release
 
   gradle:
     needs: [ "compute-version" ]

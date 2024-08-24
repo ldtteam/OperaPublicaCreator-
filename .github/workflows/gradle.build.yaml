@@ -23,28 +23,8 @@ permissions:
   contents: read
 
 jobs:
-  compute-suffix:
-    runs-on: ubuntu-latest
-    outputs:
-      branch_suffix: ${{ steps.computeBranchSuffix.outputs.branch_suffix }}
-    steps:
-      - id: computeBranchSuffix
-        name: "🔢 Compute branch suffix"
-        run: |
-          gitRef="${{ github.ref }}"
-          branchName=$(echo "${gitRef/refs\/heads\//}")
-          echo "Branch name: $branchName"
-          
-          cleanedBranchName=$(echo $branchName | sed 's/[^a-zA-Z0-9]/-/g')
-          echo "Cleaned branch name: $cleanedBranchName"
-          
-          echo "branch_suffix=$cleanedBranchName" >> "$GITHUB_OUTPUT"
-
   compute-version:
-    needs: [ "compute-suffix" ]
     uses: ./.github/workflows/gradle.version.yaml
-    with:
-      suffix: ${{ format('branch-{0}', needs.compute-suffix.outputs.branch_suffix) }}
 
   build:
     needs: [ "compute-version" ]
