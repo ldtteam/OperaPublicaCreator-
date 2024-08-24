@@ -1154,6 +1154,10 @@ tasks.withType(Jar.class, {task ->
     task.duplicatesStrategy 'exclude'
 })
 
+tasks.named('projectName', Task.class, { task ->
+    print rootProject.name
+})
+
 if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translationMergeSources") && opc.hasPropertySet("translationMergeDestination")) {
     task mergeTranslations {
         doLast {
