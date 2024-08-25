@@ -48,4 +48,4 @@ jobs:
           search_commit_body: true
           debug: true
           bump_each_commit: true
-          version_format: "${major}.${minor}.${patch}-${{ inputs.suffix }}"
+          version_format: "${{ steps.minecraftVersion.outputs.minecraft_version }}-${major}.${minor}.${patch}-${{ inputs.suffix }}"
