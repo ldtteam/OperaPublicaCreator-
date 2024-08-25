@@ -1162,7 +1162,7 @@ tasks.withType(Jar.class, {task ->
 if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translationMergeSources") && opc.hasPropertySet("translationMergeDestination")) {
     task mergeTranslations {
         doLast {
-            def translationSources = project.opc.getStringListProperty("translationMergeSources");
+            def translationSources = opc.getStringListProperty("translationMergeSources");
             if (translationSources.size() >= 1) {
                 def initialSource = translationSources[0];
                 def initialFile = project.file(initialSource);
