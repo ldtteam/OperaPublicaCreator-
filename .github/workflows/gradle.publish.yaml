@@ -113,6 +113,18 @@ jobs:
           onlyLastTag: true
           maxIssues: ${{ inputs.changelog_max_issues }}
 
+      - id: generate-release-suffix
+        name: "Generate release suffix"
+        run: |
+          release_version_suffix = "alpha"
+          if [[ ${{ inputs.curse_release_type }} == release ]]; then
+            release_version_suffix = ""
+          elif [[ ${{ inputs.curse_release_type }} == beta ]]; then
+            release_version_suffix = "snapshot"
+          fi
+          echo "Release version suffix: ${release_version_suffix}"
+          echo "release_version_suffix=${release_version_suffix}" >> "$GITHUB_ENV"
+
       - id: publish
         name: "🚀 Publish"
         run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
@@ -120,9 +132,9 @@ jobs:
           LDTTeamJfrogUsername: ${{ secrets.MAVEN_USER }}
           LDTTeamJfrogPassword: ${{ secrets.MAVEN_PASSWORD }}
           CURSE_API_KEY: ${{ secrets.CURSE_API_KEY }}
-          CURSE_RELEASE_TYPE: ${{ inputs.curse_release_type }}
           crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
-          Version: "${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}${{ inputs.curse_release_type != 'release' && format('-{1}', inputs.curse_release_type) }}"
+          VERSION_NUMBER: ${{ needs.compute-version.outputs.version }}
+          VERSION_SUFFIX: ${{ steps.generate-release-suffix.outputs.release_version_suffix }}
 
       - name: "🚀 Create GitHub release"
         uses: actions/create-release@v1

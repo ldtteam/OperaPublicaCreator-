@@ -282,10 +282,15 @@ if (opc.isFeatureEnabled("MCVersionBasedVersioning")
             opc.getIntProperty("sourceVersionElementIndex"),
             opc.getIntProperty("mcVersionElementIndex")
     )
-}
-else
-{
-    version = System.getenv().containsKey("Version") ? System.getenv("Version") : project.modVersion
+} else {
+    def versionNumber = opc.hasProperty("versionNumber") ? opc.getProperty("versionNumber") : "0.0.1"
+    def versionSuffix = opc.hasProperty("versionSuffix") ? opc.getProperty("versionSuffix") : "alpha"
+
+    if (versionSuffix == "") {
+        version = versionNumber + "-" + project.exactMinecraftVersion
+    } else {
+        version = versionNumber + "-" + project.exactMinecraftVersion + "-" + versionSuffix
+    }
 }
 archivesBaseName = project.modId
 project.properties.file = [
@@ -1035,12 +1040,12 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
 
         mainArtifact.releaseType = opc.hasPropertySet("curseReleaseType") ? opc.getProperty("curseReleaseType") : opc.getProperty("CURSERELEASETYPE")
         if (opc.isFeatureEnabled('reformatedCurseFiles')) {
-            def mainArtifactName = rootProject.name
+            def mainArtifactName = rootProject.name + " - " + project.version + " - " + mainArtifact.releaseType
             if (opc.isFeatureEnabled('customCurseFileName')) {
                 mainArtifactName = opc.getProperty('customCurseFileName')
             }
 
-            mainArtifact.displayName = mainArtifactName + " - " + project.version
+            mainArtifact.displayName = mainArtifactName
         }
 
         mainArtifact.changelog = project.rootProject.file("changelog.md")
