@@ -38,7 +38,7 @@ jobs:
         name: "🔢 Compute version"
         uses: PaulHatch/semantic-version@v5.4.0
         with:
-          tag_prefix: "v"
+          tag_prefix: "v${{ steps.minecraftVersion.outputs.minecraft_version }}"
           search_commit_body: true
           debug: true
           bump_each_commit: true
