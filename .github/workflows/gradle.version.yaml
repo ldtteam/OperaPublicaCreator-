@@ -12,9 +12,6 @@ on:
       version:
         description: "The computed version"
         value: ${{ jobs.compute-version.outputs.version }}
-      minecraft_version:
-        description: "The minecraft version"
-        value: ${{ jobs.compute-version.outputs.minecraft_version }}
 
 permissions:
   contents: read
@@ -24,7 +21,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
-      minecraft_version: ${{ steps.minecraftVersion.outputs.minecraft_version }}
     steps:
       - id: checkout
         name: "📦 Checkout"
