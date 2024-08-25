@@ -283,8 +283,8 @@ if (opc.isFeatureEnabled("MCVersionBasedVersioning")
             opc.getIntProperty("mcVersionElementIndex")
     )
 } else {
-    def versionNumber = opc.hasProperty("versionNumber") ? opc.getProperty("versionNumber") : "0.0.1"
-    def versionSuffix = opc.hasProperty("versionSuffix") ? opc.getProperty("versionSuffix") : "alpha"
+    def versionNumber = opc.hasPropertySet("versionNumber") ? opc.getProperty("versionNumber") : "0.0.1"
+    def versionSuffix = opc.hasPropertySet("versionSuffix") ? opc.getProperty("versionSuffix") : "alpha"
 
     if (versionSuffix == "") {
         version = versionNumber + "-" + project.exactMinecraftVersion
