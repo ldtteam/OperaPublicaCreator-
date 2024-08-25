@@ -2,6 +2,12 @@ name: Common Version Determination CI
 
 on:
   workflow_call:
+    inputs:
+      suffix:
+        description: "The suffix to finish the version string with"
+        required: false
+        type: string
+        default: ""
     outputs:
       version:
         description: "The computed version"
@@ -42,4 +48,4 @@ jobs:
           search_commit_body: true
           debug: true
           bump_each_commit: true
-          version_format: "${major}.${minor}.${patch}"
+          version_format: "${major}.${minor}.${patch}-${{ inputs.suffix }}"

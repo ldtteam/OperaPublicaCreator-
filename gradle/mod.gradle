@@ -1040,7 +1040,7 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
                 mainArtifactName = opc.getProperty('customCurseFileName')
             }
 
-            mainArtifact.displayName = mainArtifactName + " - " + project.version + " - " + mainArtifact.releaseType
+            mainArtifact.displayName = mainArtifactName + " - " + project.version
         }
 
         mainArtifact.changelog = project.rootProject.file("changelog.md")
