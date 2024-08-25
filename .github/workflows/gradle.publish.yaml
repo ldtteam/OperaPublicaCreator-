@@ -124,6 +124,7 @@ jobs:
           fi
           echo "Release version suffix: ${release_version_suffix}"
           echo "release_version_suffix=${release_version_suffix}" >> "$GITHUB_ENV"
+          ./gradlew # Prevent download message from appearing inside the getProjectName output
           echo "mod_name=$(./gradlew --build-cache getProjectName)" >> "$GITHUB_ENV"
 
       - id: publish
