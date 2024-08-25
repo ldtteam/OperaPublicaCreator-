@@ -29,8 +29,6 @@ permissions:
 jobs:
   compute-version:
     uses: ./.github/workflows/gradle.version.yaml
-    with:
-      suffix: pre-release
 
   gradle:
     needs: [ "compute-version" ]
@@ -63,4 +61,4 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_USERNAME: ${{ github.actor }}
           crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
-          Version: "${{ needs.compute-version.outputs.version }}"
+          Version: "${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}-rc"

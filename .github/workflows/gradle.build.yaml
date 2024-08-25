@@ -41,13 +41,10 @@ jobs:
           echo "branch_suffix=$cleanedBranchName" >> "$GITHUB_OUTPUT"
 
   compute-version:
-    needs: [ "compute-suffix" ]
     uses: ./.github/workflows/gradle.version.yaml
-    with:
-      suffix: ${{ format('branch-{0}', needs.compute-suffix.outputs.branch_suffix) }}
 
   build:
-    needs: [ "compute-version" ]
+    needs: [ "compute-suffix", "compute-version" ]
     runs-on: ubuntu-latest
     steps:
       - id: checkout
@@ -70,4 +67,4 @@ jobs:
         name: "🏗️ Build"
         run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
         env:
-          Version: "${{ needs.compute-version.outputs.version }}"
+          Version: "${{ needs.compute-version.outputs.version }}-${{ needs.compute-version.outputs.minecraft_version }}-build-${{ steps.compute-suffix.outputs.branch_suffix }}"
