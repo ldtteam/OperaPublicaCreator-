@@ -23,28 +23,11 @@ permissions:
   contents: read
 
 jobs:
-  compute-suffix:
-    runs-on: ubuntu-latest
-    outputs:
-      branch_suffix: ${{ steps.computeBranchSuffix.outputs.branch_suffix }}
-    steps:
-      - id: computeBranchSuffix
-        name: "🔢 Compute branch suffix"
-        run: |
-          gitRef="${{ github.ref }}"
-          branchName=$(echo "${gitRef/refs\/heads\//}")
-          echo "Branch name: $branchName"
-          
-          cleanedBranchName=$(echo $branchName | sed 's/[^a-zA-Z0-9]/-/g')
-          echo "Cleaned branch name: $cleanedBranchName"
-          
-          echo "branch_suffix=$cleanedBranchName" >> "$GITHUB_OUTPUT"
-
   compute-version:
     uses: ./.github/workflows/gradle.version.yaml
 
   build:
-    needs: [ "compute-suffix", "compute-version" ]
+    needs: [ "compute-version" ]
     runs-on: ubuntu-latest
     steps:
       - id: checkout
@@ -63,9 +46,21 @@ jobs:
           gradle-version: wrapper
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
+      - id: computeBranchSuffix
+        name: "🔢 Compute branch suffix"
+        run: |
+          gitRef="${{ github.ref }}"
+          branchName=$(echo "${gitRef/refs\/heads\//}")
+          echo "Branch name: $branchName"
+          
+          cleanedBranchName=$(echo $branchName | sed 's/[^a-zA-Z0-9]/-/g')
+          echo "Cleaned branch name: $cleanedBranchName"
+          
+          echo "branch_suffix=$cleanedBranchName" >> "$GITHUB_OUTPUT"
+
       - id: build
         name: "🏗️ Build"
         run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
         env:
           VERSION_NUMBER: ${{ needs.compute-version.outputs.version }}
-          VERSION_SUFFIX: "beta-${{ steps.compute-suffix.outputs.branch_suffix }}"
+          VERSION_SUFFIX: "beta-${{ steps.computeBranchSuffix.outputs.branch_suffix }}"
