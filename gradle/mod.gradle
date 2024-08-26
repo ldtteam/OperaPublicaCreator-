@@ -1042,12 +1042,12 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
 
         mainArtifact.releaseType = opc.hasPropertySet("curseReleaseType") ? opc.getProperty("curseReleaseType") : opc.getProperty("CURSERELEASETYPE")
         if (opc.isFeatureEnabled('reformatedCurseFiles')) {
-            def mainArtifactName = rootProject.name + " - " + project.version + " - " + mainArtifact.releaseType
+            def mainArtifactName = rootProject.name
             if (opc.isFeatureEnabled('customCurseFileName')) {
                 mainArtifactName = opc.getProperty('customCurseFileName')
             }
 
-            mainArtifact.displayName = mainArtifactName
+            mainArtifact.displayName = mainArtifactName + " - " + versionNumber + " - " + mainArtifact.releaseType
         }
 
         mainArtifact.changelog = project.rootProject.file("changelog.md")
@@ -1160,12 +1160,6 @@ tasks.withType(org.gradle.api.tasks.javadoc.Javadoc.class, {task ->
 tasks.withType(Jar.class, {task ->
     task.duplicatesStrategy 'exclude'
 })
-
-tasks.register('getProjectName', Task.class) {
-    doLast {
-        print rootProject.name
-    }
-}
 
 if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translationMergeSources") && opc.hasPropertySet("translationMergeDestination")) {
     task mergeTranslations {
