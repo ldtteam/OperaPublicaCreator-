@@ -269,6 +269,15 @@ if (opc.isFeatureEnabled("GitInformation")) {
 
 group = project.modGroup
 
+def versionNumber = opc.hasPropertySet("modVersion") ? opc.getProperty("modVersion") : "0.0.1"
+def versionSuffix = opc.hasPropertySet("modVersionSuffix") ? opc.getProperty("modVersionSuffix") : "alpha"
+def versionString
+if (versionSuffix == "") {
+    versionString = versionNumber + "-" + project.exactMinecraftVersion
+} else {
+    versionString = versionNumber + "-" + project.exactMinecraftVersion + "-" + versionSuffix
+}
+
 if (opc.isFeatureEnabled("MCVersionBasedVersioning")
         && opc.hasPropertySet("mcVersionElementIndex")
         && opc.hasPropertySet("sourceVersionElementIndex")
@@ -276,16 +285,14 @@ if (opc.isFeatureEnabled("MCVersionBasedVersioning")
     logger.lifecycle("MC based versioning active")
 
     version = opc.buildVersionNumberWithOffset(
-            (System.getenv().containsKey("Version") ? System.getenv("Version") : project.modVersion),
+            versionString,
             project.exactMinecraftVersion,
             opc.getProperty("sourceVersionName"),
             opc.getIntProperty("sourceVersionElementIndex"),
             opc.getIntProperty("mcVersionElementIndex")
     )
-}
-else
-{
-    version = System.getenv().containsKey("Version") ? System.getenv("Version") : project.modVersion
+} else {
+    version = versionString
 }
 archivesBaseName = project.modId
 project.properties.file = [
@@ -1040,7 +1047,7 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
                 mainArtifactName = opc.getProperty('customCurseFileName')
             }
 
-            mainArtifact.displayName = mainArtifactName + " - " + project.version + " - " + mainArtifact.releaseType
+            mainArtifact.displayName = mainArtifactName + " - " + versionNumber + " - " + mainArtifact.releaseType
         }
 
         mainArtifact.changelog = project.rootProject.file("changelog.md")
