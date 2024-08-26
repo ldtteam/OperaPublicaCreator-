@@ -137,8 +137,8 @@ jobs:
           CURSE_RELEASE_TYPE: ${{ inputs.curse_release_type }}
           CUSTOM_CURSE_FILE_NAME: "${{ steps.generate-release-information.outputs.mod_name }} - ${{ needs.compute-version.outputs.version }} - ${{ inputs.curse_release_type }}"
           crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
-          VERSION_NUMBER: ${{ needs.compute-version.outputs.version }}
-          VERSION_SUFFIX: ${{ steps.generate-release-suffix.outputs.release_version_suffix }}
+          MOD_VERSION: ${{ needs.compute-version.outputs.version }}
+          MOD_VERSION_SUFFIX: ${{ steps.generate-release-suffix.outputs.release_version_suffix }}
 
       - name: "🚀 Create GitHub release"
         uses: actions/create-release@v1

@@ -269,6 +269,15 @@ if (opc.isFeatureEnabled("GitInformation")) {
 
 group = project.modGroup
 
+def versionNumber = opc.hasPropertySet("modVersion") ? opc.getProperty("modVersion") : "0.0.1"
+def versionSuffix = opc.hasPropertySet("modVersionSuffix") ? opc.getProperty("modVersionSuffix") : "alpha"
+def versionString
+if (versionSuffix == "") {
+    versionString = versionNumber + "-" + project.exactMinecraftVersion
+} else {
+    versionString = versionNumber + "-" + project.exactMinecraftVersion + "-" + versionSuffix
+}
+
 if (opc.isFeatureEnabled("MCVersionBasedVersioning")
         && opc.hasPropertySet("mcVersionElementIndex")
         && opc.hasPropertySet("sourceVersionElementIndex")
@@ -276,21 +285,14 @@ if (opc.isFeatureEnabled("MCVersionBasedVersioning")
     logger.lifecycle("MC based versioning active")
 
     version = opc.buildVersionNumberWithOffset(
-            (System.getenv().containsKey("Version") ? System.getenv("Version") : project.modVersion),
+            versionString,
             project.exactMinecraftVersion,
             opc.getProperty("sourceVersionName"),
             opc.getIntProperty("sourceVersionElementIndex"),
             opc.getIntProperty("mcVersionElementIndex")
     )
 } else {
-    def versionNumber = opc.hasPropertySet("versionNumber") ? opc.getProperty("versionNumber") : "0.0.1"
-    def versionSuffix = opc.hasPropertySet("versionSuffix") ? opc.getProperty("versionSuffix") : "alpha"
-
-    if (versionSuffix == "") {
-        version = versionNumber + "-" + project.exactMinecraftVersion
-    } else {
-        version = versionNumber + "-" + project.exactMinecraftVersion + "-" + versionSuffix
-    }
+    version = versionString
 }
 archivesBaseName = project.modId
 project.properties.file = [

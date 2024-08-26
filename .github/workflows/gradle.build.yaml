@@ -62,5 +62,5 @@ jobs:
         name: "🏗️ Build"
         run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
         env:
-          VERSION_NUMBER: ${{ needs.compute-version.outputs.version }}
-          VERSION_SUFFIX: "beta-${{ steps.computeBranchSuffix.outputs.branch_suffix }}"
+          MOD_VERSION: ${{ needs.compute-version.outputs.version }}
+          MOD_VERSION_SUFFIX: "beta-${{ steps.computeBranchSuffix.outputs.branch_suffix }}"

@@ -61,5 +61,5 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_USERNAME: ${{ github.actor }}
           crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
-          VERSION_NUMBER: ${{ needs.compute-version.outputs.version }}
-          VERSION_SUFFIX: rc
+          MOD_VERSION: ${{ needs.compute-version.outputs.version }}
+          MOD_VERSION_SUFFIX: rc
