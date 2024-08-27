@@ -121,7 +121,7 @@ jobs:
             release_version_suffix="snapshot"
           fi
           echo "Release version suffix: ${release_version_suffix}"
-          echo "release_version_suffix=${release_version_suffix}" >> "$GITHUB_ENV"
+          echo "release_version_suffix=${release_version_suffix}" >> "$GITHUB_OUTPUT"
 
       - id: publish
         name: "🚀 Publish"
