@@ -111,8 +111,8 @@ jobs:
           onlyLastTag: true
           maxIssues: ${{ inputs.changelog_max_issues }}
 
-      - id: generate-release-information
-        name: "Generate release information"
+      - id: generate-release-suffix
+        name: "Generate release suffix"
         run: |
           release_version_suffix="alpha"
           if [[ ${{ inputs.curse_release_type }} == release ]]; then
