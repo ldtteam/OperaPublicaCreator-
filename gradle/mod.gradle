@@ -23,7 +23,7 @@ buildscript {
         classpath "org.zaproxy.gradle:gradle-plugin-crowdin:0.2.1"
         classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:3.3"
         classpath 'org.ajoberstar:grgit:3.3'
-        classpath 'net.darkhax.curseforgegradle:CurseForgeGradle:1.1.17'
+        classpath 'net.darkhax.curseforgegradle:CurseForgeGradle:1.1.25'
     }
 }
 
