@@ -60,7 +60,4 @@ jobs:
 
       - id: build
         name: "🏗️ Build"
-        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
-        env:
-          MOD_VERSION: ${{ needs.compute-version.outputs.version }}
-          MOD_VERSION_SUFFIX: "beta-${{ steps.computeBranchSuffix.outputs.branch_suffix }}"
+        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }} -PmodVersion=${{ needs.compute-version.outputs.version }} -PmodVersionSuffix=${{ steps.computeBranchSuffix.outputs.branch_suffix }}

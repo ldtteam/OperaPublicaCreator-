@@ -125,15 +125,13 @@ jobs:
 
       - id: publish
         name: "🚀 Publish"
-        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
+        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }} -PmodVersion=${{ needs.compute-version.outputs.version }} -PmodVersionSuffix=${{ steps.generate-release-suffix.outputs.release_version_suffix }}
         env:
           LDTTeamJfrogUsername: ${{ secrets.MAVEN_USER }}
           LDTTeamJfrogPassword: ${{ secrets.MAVEN_PASSWORD }}
           CURSE_API_KEY: ${{ secrets.CURSE_API_KEY }}
           CURSE_RELEASE_TYPE: ${{ inputs.curse_release_type }}
           crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
-          MOD_VERSION: ${{ needs.compute-version.outputs.version }}
-          MOD_VERSION_SUFFIX: ${{ steps.generate-release-suffix.outputs.release_version_suffix }}
 
       - name: "🚀 Create GitHub release"
         uses: actions/create-release@v1
