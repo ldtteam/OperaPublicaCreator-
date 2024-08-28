@@ -122,6 +122,13 @@ jobs:
           git config --global user.email "maintainer+github@ldtteam.com"
           git tag -a "${{ needs.compute-version.outputs.tag_version }}" -m "${{ needs.compute-version.outputs.release_text }}"
 
+      - id: getPreviousTag
+        name: "Get previous tag"
+        run: |
+          echo $(git describe --tags --abbrev=0 --match="" HEAD) > previous_tag.txt
+          echo "Previous tag: $(cat previous_tag.txt)"
+          echo "previous_tag=$(cat previous_tag.txt)" >> "$GITHUB_OUTPUT"
+
       - id: generateReleaseChangelog
         name: "📝 Generate release changelog"
         uses: heinrichreimer/action-github-changelog-generator@v2.4
@@ -129,7 +136,7 @@ jobs:
           output: changelog.md
           token: ${{ secrets.GITHUB_TOKEN }}
           stripGeneratorNotice: "true"
-          onlyLastTag: true
+          sinceTag: ${{ steps.getPreviousTag.outputs.previous_tag }}
           dueTag: ${{ needs.compute-version.outputs.tag_version }}
           excludeTagsRegex: ${{ needs.compute-version.outputs.tag_regex }}
           maxIssues: ${{ inputs.changelog_max_issues }}
