@@ -44,11 +44,32 @@ permissions:
   statuses: write
 
 jobs:
+  generate-release-information:
+    name: "Generate release information"
+    runs-on: ubuntu-latest
+    outputs:
+      release_version_suffix: ${{ steps.generateReleaseSuffix.outputs.release_version_suffix }}
+    steps:
+      - id: generateReleaseSuffix
+        name: "Generate release suffix"
+        run: |
+          release_version_suffix="alpha"
+          if [[ ${{ inputs.curse_release_type }} == release ]]; then
+            release_version_suffix=""
+          elif [[ ${{ inputs.curse_release_type }} == beta ]]; then
+            release_version_suffix="snapshot"
+          fi
+          echo "Release version suffix: ${release_version_suffix}"
+          echo "release_version_suffix=${release_version_suffix}" >> "$GITHUB_OUTPUT"
+
   compute-version:
+    needs: [ "generate-release-information" ]
     uses: ./.github/workflows/gradle.version.yaml
+    with:
+      suffix: ${{ needs.generate-release-information.outputs.release_version_suffix }}
 
   notify-build-start:
-    needs: [ "compute-version" ]
+    needs: [ "generate-release-information" ]
     name: "🔴 Build notifications (start)"
     runs-on: ubuntu-latest
     steps:
@@ -57,7 +78,7 @@ jobs:
         with:
           webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
           status: 'started'
-          version: "${{ needs.compute-version.outputs.version }}"
+          version: "${{ needs.generate-release-information.outputs.full_version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -67,11 +88,11 @@ jobs:
           authToken: ${{secrets.GITHUB_TOKEN}}
           context: 'Publishing'
           state: 'pending'
-          description: "Version: ${{ needs.compute-version.outputs.version }}"
+          description: "Version: ${{ needs.generate-release-information.outputs.full_version }}"
           target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   gradle:
-    needs: [ "compute-version" ]
+    needs: [ "generate-release-information", "compute-version" ]
     runs-on: ubuntu-latest
     steps:
       - id: checkout
@@ -99,16 +120,16 @@ jobs:
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "maintainer+github@ldtteam.com"
-          git tag -a v${{ needs.compute_version.outputs.minecraft_version }}-${{ needs.compute-version.outputs.version }} -m "Version ${{ needs.compute-version.outputs.version }} for Minecraft ${{ needs.compute_version.outputs.minecraft_version }}"
+          git tag -a v${{ needs.generate-release-information.outputs.full_version }} -m "Release ${{ needs.compute-version.outputs.version }} for Minecraft ${{ needs.compute_version.outputs.minecraft_version }}"
 
-      - id: generate-release-changelog-version-regex
+      - id: generateReleaseChangelogVersionRegex
         name: "📝 Generate release changelog version regex"
         run: |
           version_regex=${echo "${{ needs.compute_version.outputs.minecraft_version }}" | sed 's/\./\\./g'}
           echo "Changelog version regex: ${version_regex}"
           echo "version_regex=${version_regex}" >> "$GITHUB_ENV"
 
-      - id: generate-release-changelog
+      - id: generateReleaseChangelog
         name: "📝 Generate release changelog"
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
@@ -116,24 +137,12 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           stripGeneratorNotice: "true"
           onlyLastTag: true
-          excludeTagsRegex: "^(?!v${{ steps.generate-release-changelog-version-regex.outputs.version_regex }}).+$"
+          excludeTagsRegex: "^(?!v${{ steps.generateReleaseChangelogVersionRegex.outputs.version_regex }}).+$"
           maxIssues: ${{ inputs.changelog_max_issues }}
-
-      - id: generate-release-suffix
-        name: "Generate release suffix"
-        run: |
-          release_version_suffix="alpha"
-          if [[ ${{ inputs.curse_release_type }} == release ]]; then
-            release_version_suffix=""
-          elif [[ ${{ inputs.curse_release_type }} == beta ]]; then
-            release_version_suffix="snapshot"
-          fi
-          echo "Release version suffix: ${release_version_suffix}"
-          echo "release_version_suffix=${release_version_suffix}" >> "$GITHUB_ENV"
 
       - id: publish
         name: "🚀 Publish"
-        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }} -PmodVersion=${{ needs.compute-version.outputs.version }} -PmodVersionSuffix=${{ steps.generate-release-suffix.outputs.release_version_suffix }}
+        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }} -PmodVersion=${{ needs.compute-version.outputs.version }} -PmodVersionSuffix=${{ needs.compute-version.outputs.suffix }}
         env:
           LDTTeamJfrogUsername: ${{ secrets.MAVEN_USER }}
           LDTTeamJfrogPassword: ${{ secrets.MAVEN_PASSWORD }}
@@ -146,7 +155,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: v${{ needs.compute_version.outputs.minecraft_version }}-${{ needs.compute-version.outputs.version }}
+          tag_name: ${{ needs.compute-version.outputs.tag_version }}
           release_name: "Release ${{ needs.compute-version.outputs.version }} for Minecraft ${{ needs.compute_version.outputs.minecraft_version }}"
           body_path: changelog.md
           prerelease: ${{ inputs.curse_release_type != 'release' }}
@@ -162,7 +171,7 @@ jobs:
         with:
           webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ needs.gradle.result }}
-          version: "${{ needs.compute-version.outputs.version }}"
+          version: "${{ needs.generate-release-information.outputs.full_version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: neoforged/action-github-status@v1
@@ -171,5 +180,5 @@ jobs:
           authToken: ${{ secrets.GITHUB_TOKEN }}
           context: 'Publishing'
           state: ${{ needs.gradle.result }}
-          description: "Version: ${{ needs.compute-version.outputs.version }}"
+          description: "Version: ${{ needs.generate-release-information.outputs.full_version }}"
           target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

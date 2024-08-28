@@ -29,6 +29,8 @@ permissions:
 jobs:
   compute-version:
     uses: ./.github/workflows/gradle.version.yaml
+    with:
+      suffix: rc
 
   gradle:
     needs: [ "compute-version" ]
@@ -55,7 +57,7 @@ jobs:
 
       - id: build
         name: "🏗️ Build"
-        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }} -PmodVersion=${{ needs.compute-version.outputs.version }} -PmodVersionSuffix=rc
+        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }} -PmodVersion=${{ needs.compute-version.outputs.version }} -PmodVersionSuffix=${{ needs.compute-version.outputs.suffix }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
