@@ -130,6 +130,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           stripGeneratorNotice: "true"
           onlyLastTag: true
+          dueTag: ${{ needs.compute-version.outputs.tag_version }}
           excludeTagsRegex: ${{ needs.compute-version.outputs.tag_regex }}
           maxIssues: ${{ inputs.changelog_max_issues }}
 
