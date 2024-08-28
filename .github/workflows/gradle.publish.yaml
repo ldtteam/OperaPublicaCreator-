@@ -99,12 +99,14 @@ jobs:
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "maintainer+github@ldtteam.com"
-          git tag -a ${{ needs.compute-version.outputs.version }} -m "Version ${{ needs.compute-version.outputs.version }}"
+          git tag -a v${{ needs.compute_version.outputs.minecraft_version }}-${{ needs.compute-version.outputs.version }} -m "Version ${{ needs.compute-version.outputs.version }} for Minecraft ${{ needs.compute_version.outputs.minecraft_version }}"
 
       - id: generate-release-changelog-version-regex
         name: "📝 Generate release changelog version regex"
         run: |
-          echo "version_regex=$(echo "${{ needs.compute_version.outputs.minecraft_version }}" | sed 's/\./\\./g')" >> "$GITHUB_ENV"
+          version_regex=${echo "${{ needs.compute_version.outputs.minecraft_version }}" | sed 's/\./\\./g'}
+          echo "Changelog version regex: ${version_regex}"
+          echo "version_regex=${version_regex}" >> "$GITHUB_ENV"
 
       - id: generate-release-changelog
         name: "📝 Generate release changelog"
@@ -144,8 +146,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ needs.compute-version.outputs.version }}
-          release_name: "Release ${{ needs.compute-version.outputs.version }}"
+          tag_name: v${{ needs.compute_version.outputs.minecraft_version }}-${{ needs.compute-version.outputs.version }}
+          release_name: "Release ${{ needs.compute-version.outputs.version }} for Minecraft ${{ needs.compute_version.outputs.minecraft_version }}"
           body_path: changelog.md
           prerelease: ${{ inputs.curse_release_type != 'release' }}
 

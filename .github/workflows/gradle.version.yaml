@@ -6,6 +6,9 @@ on:
       version:
         description: "The computed version"
         value: ${{ jobs.compute-version.outputs.version }}
+      minecraft_version:
+        description: "The minecraft version"
+        value: ${{ jobs.compute-version.outputs.minecraft_version }}
 
 permissions:
   contents: read
@@ -15,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      minecraft_version: ${{ steps.minecraftVersion.outputs.minecraft_version }}
     steps:
       - id: checkout
         name: "📦 Checkout"
@@ -22,6 +26,12 @@ jobs:
         with:
           fetch-depth: 0
           fetch-tags: true
+      - id: minecraftVersion
+        name: "📦 Extract Minecraft version"
+        run: |
+          cat gradle.properties | grep exactMinecraftVersion | cut -d "=" -f 2 > minecraft_version.txt
+          echo "Minecraft version: $(cat minecraft_version.txt)"
+          echo "minecraft_version=$(cat minecraft_version.txt)" >> "$GITHUB_OUTPUT"
 
       - id: version
         name: "🔢 Compute version"
