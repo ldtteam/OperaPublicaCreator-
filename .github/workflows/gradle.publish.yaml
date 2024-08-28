@@ -125,7 +125,7 @@ jobs:
       - id: getPreviousTag
         name: "📝 Get previous tag"
         run: |
-          previous_tag=$(git describe --tags --abbrev=0 --match="${{ needs.compute-version.outputs.tag_regex }}" HEAD)
+          previous_tag=$(git describe --tags --abbrev=0 HEAD)
           echo "Previous tag: ${previous_tag}"
           echo "previous_tag=${previous_tag}" >> "$GITHUB_OUTPUT"
 
