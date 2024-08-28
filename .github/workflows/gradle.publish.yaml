@@ -138,7 +138,7 @@ jobs:
           stripGeneratorNotice: "true"
           sinceTag: ${{ steps.getPreviousTag.outputs.previous_tag }}
           dueTag: ${{ needs.compute-version.outputs.tag_version }}
-          excludeTagsRegex: ${{ needs.compute-version.outputs.tag_regex }}
+#          excludeTagsRegex: ${{ needs.compute-version.outputs.tag_regex }}
           maxIssues: ${{ inputs.changelog_max_issues }}
 
       - id: publish
