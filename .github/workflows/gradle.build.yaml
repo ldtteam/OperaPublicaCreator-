@@ -23,11 +23,33 @@ permissions:
   contents: read
 
 jobs:
+  generate-build-information:
+    name: "Generate build information"
+    runs-on: ubuntu-latest
+    outputs:
+      branch_suffix: ${{ steps.computeBranchSuffix.outputs.branch_suffix }}
+    steps:
+      - id: computeBranchSuffix
+        name: "🔢 Compute branch suffix"
+        run: |
+          gitRef="${{ github.ref }}"
+          branchName=$(echo "${gitRef/refs\/heads\//}")
+          echo "Branch name: $branchName"
+          
+          cleanedBranchName=$(echo $branchName | sed 's/[^a-zA-Z0-9]/-/g')
+          echo "Cleaned branch name: $cleanedBranchName"
+          
+          echo "branch_suffix=$cleanedBranchName" >> "$GITHUB_OUTPUT"
+
   compute-version:
+    needs: [ "generate-build-information" ]
     uses: ./.github/workflows/gradle.version.yaml
+    with:
+      suffix: ${{ needs.generate-build-information.outputs.branch_suffix }}
 
   build:
     needs: [ "compute-version" ]
+    name: "🏗️ Build"
     runs-on: ubuntu-latest
     steps:
       - id: checkout
@@ -46,18 +68,6 @@ jobs:
           gradle-version: wrapper
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
-      - id: computeBranchSuffix
-        name: "🔢 Compute branch suffix"
-        run: |
-          gitRef="${{ github.ref }}"
-          branchName=$(echo "${gitRef/refs\/heads\//}")
-          echo "Branch name: $branchName"
-          
-          cleanedBranchName=$(echo $branchName | sed 's/[^a-zA-Z0-9]/-/g')
-          echo "Cleaned branch name: $cleanedBranchName"
-          
-          echo "branch_suffix=$cleanedBranchName" >> "$GITHUB_OUTPUT"
-
       - id: build
         name: "🏗️ Build"
-        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }} -PmodVersion=${{ needs.compute-version.outputs.version }} -PmodVersionSuffix=${{ steps.computeBranchSuffix.outputs.branch_suffix }}
+        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }} -PmodVersion=${{ needs.compute-version.outputs.mod_version }} -PmodVersionSuffix=${{ needs.compute_version.outputs.suffix }}
