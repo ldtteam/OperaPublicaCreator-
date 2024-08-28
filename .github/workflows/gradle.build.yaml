@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   generate-build-information:
-    name: "Generate release information"
+    name: "Generate build information"
     runs-on: ubuntu-latest
     outputs:
       branch_suffix: ${{ steps.computeBranchSuffix.outputs.branch_suffix }}
