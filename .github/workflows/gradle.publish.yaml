@@ -38,7 +38,7 @@ on:
       GRADLE_ENCRYPTION_KEY:
         description: The AES key to enable Gradle cache encryption
         required: true
-      GITHUB_TOKEN:
+      GH_TOKEN:
         required: true
 
 permissions:
@@ -82,12 +82,12 @@ jobs:
           status: 'started'
           version: "${{ needs.compute-version.outputs.full_version }}"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - uses: neoforged/action-github-status@v1
         name: "🚧 Set pending status"
         with:
-          authToken: ${{secrets.GITHUB_TOKEN}}
+          authToken: ${{ secrets.GH_TOKEN }}
           context: 'Publishing'
           state: 'pending'
           description: ${{ needs.compute-version.outputs.release_text }}
@@ -129,7 +129,7 @@ jobs:
         uses: heinrichreimer/action-github-changelog-generator@v2.4
         with:
           output: changelog.md
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
           stripGeneratorNotice: "true"
           onlyLastTag: true
           excludeTagsRegex: ${{ needs.compute-version.outputs.tag_regex }}
@@ -148,7 +148,7 @@ jobs:
       - name: "🚀 Create GitHub release"
         uses: actions/create-release@v1
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           tag_name: ${{ needs.compute-version.outputs.tag_version }}
           release_name: ${{ needs.compute-version.outputs.release_text }}
@@ -168,11 +168,11 @@ jobs:
           status: ${{ needs.gradle.result }}
           version: "${{ needs.compute-version.outputs.full_version }}"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
       - uses: neoforged/action-github-status@v1
         name: "🚧 Set build status"
         with:
-          authToken: ${{ secrets.GITHUB_TOKEN }}
+          authToken: ${{ secrets.GH_TOKEN }}
           context: 'Publishing'
           state: ${{ needs.gradle.result }}
           description: ${{ needs.compute-version.outputs.release_text }}
