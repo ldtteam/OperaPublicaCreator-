@@ -12,7 +12,7 @@ on:
         value: ${{ jobs.compute-version.outputs.minecraft_version }}
       mod_version:
         description: "The mod version"
-        value: ${{ jobs.compute-version.outputs.version }}
+        value: ${{ jobs.compute-version.outputs.mod_version }}
       suffix:
         description: "The input suffix"
         value: ${{ inputs.suffix }}
