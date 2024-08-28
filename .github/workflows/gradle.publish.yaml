@@ -133,6 +133,9 @@ jobs:
           excludeTagsRegex: ${{ needs.compute-version.outputs.tag_regex }}
           maxIssues: ${{ inputs.changelog_max_issues }}
 
+      - id: printChangelog
+        run: cat changelog.md
+
       - id: publish
         name: "🚀 Publish"
         run: ./gradlew --build-cache ${{ inputs.gradle_tasks }} -PmodVersion=${{ needs.compute-version.outputs.mod_version }} -PmodVersionSuffix=${{ needs.compute-version.outputs.suffix }}
