@@ -38,6 +38,8 @@ on:
       GRADLE_ENCRYPTION_KEY:
         description: The AES key to enable Gradle cache encryption
         required: true
+      GITHUB_TOKEN:
+        required: true
 
 permissions:
   contents: write
