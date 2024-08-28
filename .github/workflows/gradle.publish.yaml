@@ -120,7 +120,7 @@ jobs:
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "maintainer+github@ldtteam.com"
-          git tag -a ${{ needs.compute-version.outputs.tag_version }} -m ${{ needs.compute-version.outputs.release_text }}
+          git tag -a "${{ needs.compute-version.outputs.tag_version }}" -m "${{ needs.compute-version.outputs.release_text }}"
 
       - id: generateReleaseChangelog
         name: "📝 Generate release changelog"
