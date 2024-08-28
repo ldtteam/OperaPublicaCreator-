@@ -58,10 +58,10 @@ jobs:
           echo "minecraft_version=$(cat minecraft_version.txt)" >> "$GITHUB_OUTPUT"
 
       - id: generateModVersion
-        name: "🔢 Compute version"
+        name: "🔢 Generate mod version"
         uses: PaulHatch/semantic-version@v5.4.0
         with:
-          tag_prefix: "v${{ steps.minecraftVersion.outputs.minecraft_version }}-"
+          tag_prefix: "v${{ steps.generateMinecraftVersion.outputs.minecraft_version }}-"
           search_commit_body: true
           debug: true
           bump_each_commit: true
@@ -70,21 +70,21 @@ jobs:
       - id: generateFullVersion
         name: "Generate full version"
         run: |
-          full_version="${{ steps.modVersion.outputs.version }}-${{ steps.minecraftVersion.outputs.minecraft_version }}-${{ inputs.suffix }}"
+          full_version="${{ steps.modVersion.outputs.version }}-${{ steps.generateMinecraftVersion.outputs.minecraft_version }}-${{ inputs.suffix }}"
           echo "Full version: ${full_version}"
           echo "full_version=${full_version}" >> "$GITHUB_OUTPUT"
 
       - id: generateTagVersion
         name: "Generate tag version"
         run: |
-          tag_version="v${{ steps.minecraftVersion.outputs.minecraft_version }}-${{ steps.modVersion.outputs.version }}"
+          tag_version="v${{ steps.generateMinecraftVersion.outputs.minecraft_version }}-${{ steps.generateModVersion.outputs.version }}"
           echo "Tag version: ${tag_version}"
           echo "tag_version=${tag_version}" >> "$GITHUB_OUTPUT"
 
       - id: generateTagRegex
         name: "Generate tag version regex"
         run: |
-          version_number=${echo "${{ needs.compute_version.outputs.minecraft_version }}" | sed 's/\./\\./g'}
+          version_number=${echo "${{ steps.generateMinecraftVersion.outputs.minecraft_version }}" | sed 's/\./\\./g'}
           tag_regex="^(?!v${version_number}).+$"
           echo "Tag version regex: ${tag_regex}"
           echo "tag_regex=${tag_regex}" >> "$GITHUB_ENV"
@@ -92,6 +92,6 @@ jobs:
       - id: generateReleaseText
         name: "Generate release text"
         run: |
-          release_text="Version ${{ steps.version.outputs.version }} for Minecraft ${{ steps.minecraftVersion.outputs.minecraft_version }}"
+          release_text="Version ${{ steps.generateModVersion.outputs.version }} for Minecraft ${{ steps.generateMinecraftVersion.outputs.minecraft_version }}"
           echo "Release text: ${release_text}"
           echo "release_text=${release_text}" >> "$GITHUB_OUTPUT"
