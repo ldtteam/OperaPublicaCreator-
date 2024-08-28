@@ -25,19 +25,19 @@ on:
         type: number
         default: 100
     secrets:
-#      DISCORD_WEBHOOK:
-#        required: true
-#      MAVEN_USER:
-#        required: true
-#      MAVEN_PASSWORD:
-#        required: true
-#      CURSE_API_KEY:
-#        required: true
-#      CROWDIN_API_KEY:
-#        required: true
+      DISCORD_WEBHOOK:
+        required: true
+      MAVEN_USER:
+        required: true
+      MAVEN_PASSWORD:
+        required: true
+      CURSE_API_KEY:
+        required: true
+      CROWDIN_API_KEY:
+        required: true
       GRADLE_ENCRYPTION_KEY:
         description: The AES key to enable Gradle cache encryption
-        required: false
+        required: true
 
 permissions:
   contents: write
@@ -68,28 +68,28 @@ jobs:
     with:
       suffix: ${{ needs.generate-release-information.outputs.release_version_suffix }}
 
-#  notify-build-start:
-#    needs: [ "compute-version" ]
-#    name: "🔴 Build notifications (start)"
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: neoforged/action-webhooks@v1
-#        name: "🔴 Send Discord start notification"
-#        with:
-#          webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
-#          status: 'started'
-#          version: "${{ needs.compute-version.outputs.full_version }}"
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#
-#      - uses: neoforged/action-github-status@v1
-#        name: "🚧 Set pending status"
-#        with:
-#          authToken: ${{secrets.GITHUB_TOKEN}}
-#          context: 'Publishing'
-#          state: 'pending'
-#          description: ${{ needs.compute-version.outputs.release_text }}
-#          target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+  notify-build-start:
+    needs: [ "compute-version" ]
+    name: "🔴 Build notifications (start)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: neoforged/action-webhooks@v1
+        name: "🔴 Send Discord start notification"
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+          status: 'started'
+          version: "${{ needs.compute-version.outputs.full_version }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: neoforged/action-github-status@v1
+        name: "🚧 Set pending status"
+        with:
+          authToken: ${{secrets.GITHUB_TOKEN}}
+          context: 'Publishing'
+          state: 'pending'
+          description: ${{ needs.compute-version.outputs.release_text }}
+          target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
   gradle:
     needs: [ "compute-version" ]
@@ -133,48 +133,45 @@ jobs:
           excludeTagsRegex: ${{ needs.compute-version.outputs.tag_regex }}
           maxIssues: ${{ inputs.changelog_max_issues }}
 
-      - id: printChangelog
-        run: cat changelog.md
-
       - id: publish
         name: "🚀 Publish"
         run: ./gradlew --build-cache ${{ inputs.gradle_tasks }} -PmodVersion=${{ needs.compute-version.outputs.mod_version }} -PmodVersionSuffix=${{ needs.compute-version.outputs.suffix }}
-#        env:
-#          LDTTeamJfrogUsername: ${{ secrets.MAVEN_USER }}
-#          LDTTeamJfrogPassword: ${{ secrets.MAVEN_PASSWORD }}
-#          CURSE_API_KEY: ${{ secrets.CURSE_API_KEY }}
-#          CURSE_RELEASE_TYPE: ${{ inputs.curse_release_type }}
-#          crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
+        env:
+          LDTTeamJfrogUsername: ${{ secrets.MAVEN_USER }}
+          LDTTeamJfrogPassword: ${{ secrets.MAVEN_PASSWORD }}
+          CURSE_API_KEY: ${{ secrets.CURSE_API_KEY }}
+          CURSE_RELEASE_TYPE: ${{ inputs.curse_release_type }}
+          crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
 
-#      - name: "🚀 Create GitHub release"
-#        uses: actions/create-release@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        with:
-#          tag_name: ${{ needs.compute-version.outputs.tag_version }}
-#          release_name: ${{ needs.compute-version.outputs.release_text }}
-#          body_path: changelog.md
-#          prerelease: ${{ inputs.curse_release_type != 'release' }}
+      - name: "🚀 Create GitHub release"
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.compute-version.outputs.tag_version }}
+          release_name: ${{ needs.compute-version.outputs.release_text }}
+          body_path: changelog.md
+          prerelease: ${{ inputs.curse_release_type != 'release' }}
 
-#  notify-build-end:
-#    needs: [ "compute-version", "notify-build-start", "gradle" ]
-#    name: "🔴 Build notifications (end)"
-#    if: ${{ always() }}
-#    runs-on: ubuntu-latest
-#    steps:
-#      - uses: neoforged/action-webhooks@v1
-#        name: "🔴 Send Discord end notification"
-#        with:
-#          webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
-#          status: ${{ needs.gradle.result }}
-#          version: "${{ needs.compute-version.outputs.full_version }}"
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#      - uses: neoforged/action-github-status@v1
-#        name: "🚧 Set build status"
-#        with:
-#          authToken: ${{ secrets.GITHUB_TOKEN }}
-#          context: 'Publishing'
-#          state: ${{ needs.gradle.result }}
-#          description: ${{ needs.compute-version.outputs.release_text }}
-#          target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+  notify-build-end:
+    needs: [ "compute-version", "notify-build-start", "gradle" ]
+    name: "🔴 Build notifications (end)"
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: neoforged/action-webhooks@v1
+        name: "🔴 Send Discord end notification"
+        with:
+          webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
+          status: ${{ needs.gradle.result }}
+          version: "${{ needs.compute-version.outputs.full_version }}"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: neoforged/action-github-status@v1
+        name: "🚧 Set build status"
+        with:
+          authToken: ${{ secrets.GITHUB_TOKEN }}
+          context: 'Publishing'
+          state: ${{ needs.gradle.result }}
+          description: ${{ needs.compute-version.outputs.release_text }}
+          target_url: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
