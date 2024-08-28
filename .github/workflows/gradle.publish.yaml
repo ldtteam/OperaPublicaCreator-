@@ -143,15 +143,15 @@ jobs:
 #          CURSE_RELEASE_TYPE: ${{ inputs.curse_release_type }}
           crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
 
-      - name: "🚀 Create GitHub release"
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ needs.compute-version.outputs.tag_version }}
-          release_name: ${{ needs.compute-version.outputs.release_text }}
-          body_path: changelog.md
-          prerelease: ${{ inputs.curse_release_type != 'release' }}
+#      - name: "🚀 Create GitHub release"
+#        uses: actions/create-release@v1
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        with:
+#          tag_name: ${{ needs.compute-version.outputs.tag_version }}
+#          release_name: ${{ needs.compute-version.outputs.release_text }}
+#          body_path: changelog.md
+#          prerelease: ${{ inputs.curse_release_type != 'release' }}
 
   notify-build-end:
     needs: [ "compute-version", "notify-build-start", "gradle" ]
@@ -164,7 +164,7 @@ jobs:
         with:
           webhook_url: ${{ secrets.DISCORD_WEBHOOK }}
           status: ${{ needs.gradle.result }}
-          version: "${{ needs.generate-release-information.outputs.full_version }}"
+          version: "${{ needs.compute-version.outputs.full_version }}"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: neoforged/action-github-status@v1
