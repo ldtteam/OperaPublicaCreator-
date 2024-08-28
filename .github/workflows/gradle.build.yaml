@@ -46,8 +46,18 @@ jobs:
           gradle-version: wrapper
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
+      - id: computeBranchSuffix
+        name: "🔢 Compute branch suffix"
+        run: |
+          gitRef="${{ github.ref }}"
+          branchName=$(echo "${gitRef/refs\/heads\//}")
+          echo "Branch name: $branchName"
+          
+          cleanedBranchName=$(echo $branchName | sed 's/[^a-zA-Z0-9]/-/g')
+          echo "Cleaned branch name: $cleanedBranchName"
+          
+          echo "branch_suffix=$cleanedBranchName" >> "$GITHUB_OUTPUT"
+
       - id: build
         name: "🏗️ Build"
-        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
-        env:
-          Version: "${{ needs.compute-version.outputs.version }}"
+        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }} -PmodVersion=${{ needs.compute-version.outputs.version }} -PmodVersionSuffix=${{ steps.computeBranchSuffix.outputs.branch_suffix }}
