@@ -84,8 +84,8 @@ jobs:
       - id: generateTagRegex
         name: "Generate tag version regex"
         run: |
-          version_number=${echo "${{ steps.generateMinecraftVersion.outputs.minecraft_version }}" | sed 's/\./\\./g'}
-          tag_regex="^(?!v${version_number}).+$"
+          echo "${{ steps.generateMinecraftVersion.outputs.minecraft_version }}" | sed "s|\.|\\\.|g" > tag_regex.txt
+          tag_regex="^(?!v${cat tag_regex.txt}).+$"
           echo "Tag version regex: ${tag_regex}"
           echo "tag_regex=${tag_regex}" >> "$GITHUB_ENV"
 
