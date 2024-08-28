@@ -22,6 +22,12 @@ on:
       tag_version:
         description: "The version that the tag should get"
         value: ${{ jobs.compute-version.outputs.tag_version }}
+      tag_regex:
+        description: "The regex for matching identical version tags"
+        value: ${{ jobs.compute-version.outputs.tag_regex }}
+      release_text:
+        description: "The text for the release version"
+        value: ${{ jobs.compute-version.outputs.release_text }}
 
 permissions:
   contents: read
@@ -30,10 +36,12 @@ jobs:
   compute-version:
     runs-on: ubuntu-latest
     outputs:
-      minecraft_version: ${{ steps.minecraftVersion.outputs.minecraft_version }}
-      mod_version: ${{ steps.version.outputs.version }}
-      full_version: ${{ steps.fullVersion.outputs.full_version }}
-      tag_version: ${{ steps.tagVersion.outputs.tag_version }}
+      minecraft_version: ${{ steps.generateMinecraftVersion.outputs.minecraft_version }}
+      mod_version: ${{ steps.generateModVersion.outputs.version }}
+      full_version: ${{ steps.generateFullVersion.outputs.full_version }}
+      tag_version: ${{ steps.generateTagVersion.outputs.tag_version }}
+      tag_regex: ${{ steps.generateTagRegex.outputs.tag_regex }}
+      release_text: ${{ steps.generateReleaseText.outputs.release_text }}
     steps:
       - id: checkout
         name: "📦 Checkout"
@@ -42,14 +50,14 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - id: minecraftVersion
+      - id: generateMinecraftVersion
         name: "📦 Extract Minecraft version"
         run: |
           cat gradle.properties | grep exactMinecraftVersion | cut -d "=" -f 2 > minecraft_version.txt
           echo "Minecraft version: $(cat minecraft_version.txt)"
           echo "minecraft_version=$(cat minecraft_version.txt)" >> "$GITHUB_OUTPUT"
 
-      - id: modVersion
+      - id: generateModVersion
         name: "🔢 Compute version"
         uses: PaulHatch/semantic-version@v5.4.0
         with:
@@ -59,16 +67,31 @@ jobs:
           bump_each_commit: true
           version_format: "${major}.${minor}.${patch}"
 
-      - id: fullVersion
+      - id: generateFullVersion
         name: "Generate full version"
         run: |
           full_version="${{ steps.modVersion.outputs.version }}-${{ steps.minecraftVersion.outputs.minecraft_version }}-${{ inputs.suffix }}"
           echo "Full version: ${full_version}"
           echo "full_version=${full_version}" >> "$GITHUB_OUTPUT"
 
-      - id: tagVersion
+      - id: generateTagVersion
         name: "Generate tag version"
         run: |
           tag_version="v${{ steps.minecraftVersion.outputs.minecraft_version }}-${{ steps.modVersion.outputs.version }}"
-          echo "Full version: ${full_version}"
+          echo "Tag version: ${tag_version}"
           echo "tag_version=${tag_version}" >> "$GITHUB_OUTPUT"
+
+      - id: generateTagRegex
+        name: "Generate tag version regex"
+        run: |
+          version_number=${echo "${{ needs.compute_version.outputs.minecraft_version }}" | sed 's/\./\\./g'}
+          tag_regex="^(?!v${version_number}).+$"
+          echo "Tag version regex: ${tag_regex}"
+          echo "tag_regex=${tag_regex}" >> "$GITHUB_ENV"
+
+      - id: generateReleaseText
+        name: "Generate release text"
+        run: |
+          release_text="Version ${{ steps.version.outputs.version }} for Minecraft ${{ steps.minecraftVersion.outputs.minecraft_version }}"
+          echo "Release text: ${release_text}"
+          echo "release_text=${release_text}" >> "$GITHUB_OUTPUT"
