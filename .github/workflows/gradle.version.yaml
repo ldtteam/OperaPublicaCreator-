@@ -51,14 +51,14 @@ jobs:
           fetch-tags: true
 
       - id: generateMinecraftVersion
-        name: "📦 Extract Minecraft version"
+        name: "Generate Minecraft version"
         run: |
           cat gradle.properties | grep exactMinecraftVersion | cut -d "=" -f 2 > minecraft_version.txt
           echo "Minecraft version: $(cat minecraft_version.txt)"
           echo "minecraft_version=$(cat minecraft_version.txt)" >> "$GITHUB_OUTPUT"
 
       - id: generateModVersion
-        name: "🔢 Generate mod version"
+        name: "Generate mod version"
         uses: PaulHatch/semantic-version@v5.4.0
         with:
           tag_prefix: "v${{ steps.generateMinecraftVersion.outputs.minecraft_version }}-"
@@ -84,10 +84,11 @@ jobs:
       - id: generateTagRegex
         name: "Generate tag version regex"
         run: |
-          echo "${{ steps.generateMinecraftVersion.outputs.minecraft_version }}" | sed "s|\.|\\\.|g" > tag_regex.txt
-          tag_regex="^(?!v${cat tag_regex.txt}).+$"
-          echo "Tag version regex: ${tag_regex}"
-          echo "tag_regex=${tag_regex}" >> "$GITHUB_ENV"
+          echo "^(?!v" > tag_regex.txt
+          echo "${{ steps.generateMinecraftVersion.outputs.minecraft_version }}" | sed "s|\.|\\\.|g" >> tag_regex.txt
+          echo ").+$" >> tag_regex.txt
+          echo "Tag version regex: $(cat tag_regex.txt)"
+          echo "tag_regex=$(cat tag_regex.txt)" >> "$GITHUB_ENV"
 
       - id: generateReleaseText
         name: "Generate release text"
