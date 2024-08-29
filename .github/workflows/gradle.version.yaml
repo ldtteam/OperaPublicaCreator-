@@ -22,9 +22,6 @@ on:
       tag_version:
         description: "The version that the tag should get"
         value: ${{ jobs.compute-version.outputs.tag_version }}
-      tag_regex:
-        description: "The regex for matching identical version tags"
-        value: ${{ jobs.compute-version.outputs.tag_regex }}
       release_text:
         description: "The text for the release version"
         value: ${{ jobs.compute-version.outputs.release_text }}
@@ -40,7 +37,6 @@ jobs:
       mod_version: ${{ steps.generateModVersion.outputs.version }}
       full_version: ${{ steps.generateFullVersion.outputs.full_version }}
       tag_version: ${{ steps.generateTagVersion.outputs.tag_version }}
-      tag_regex: ${{ steps.generateTagRegex.outputs.tag_regex }}
       release_text: ${{ steps.generateReleaseText.outputs.release_text }}
     steps:
       - id: checkout
@@ -80,15 +76,6 @@ jobs:
           tag_version="v${{ steps.generateMinecraftVersion.outputs.minecraft_version }}-${{ steps.generateModVersion.outputs.version }}"
           echo "Tag version: ${tag_version}"
           echo "tag_version=${tag_version}" >> "$GITHUB_OUTPUT"
-
-      - id: generateTagRegex
-        name: "Generate tag version regex"
-        run: |
-          echo -n "^(?!v" > tag_regex.txt
-          echo -n "${{ steps.generateMinecraftVersion.outputs.minecraft_version }}" | sed "s|\.|\\\\.|g" >> tag_regex.txt
-          echo -n ").+$" >> tag_regex.txt
-          echo "Tag version regex: $(cat tag_regex.txt)"
-          echo "tag_regex=$(cat tag_regex.txt)" >> "$GITHUB_OUTPUT"
 
       - id: generateReleaseText
         name: "Generate release text"
