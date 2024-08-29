@@ -141,17 +141,17 @@ jobs:
           echo "$(git log --pretty=format:"- %s ([commit](${{ github.server_url }}/${{ github.repository }}/commit/%H))" ${{ steps.getPreviousTag.outputs.previous_tag }}..${{ needs.compute-version.outputs.tag_version }})" >> changelog.md
           sed -i -E "s|\(#([[:digit:]]+)\)|([#\1](${{ github.server_url }}/${{ github.repository }}/pull/\1))|" changelog.md
 
-      - id: generateReleaseChangelog
-        name: "📝 Generate release changelog"
-        uses: heinrichreimer/action-github-changelog-generator@v2.4
-        with:
-          output: changelog.md
-          token: ${{ secrets.GITHUB_TOKEN }}
-          stripGeneratorNotice: "true"
-          sinceTag: ${{ steps.getPreviousTag.outputs.previous_tag }}
-          dueTag: ${{ needs.compute-version.outputs.tag_version }}
-          excludeTagsRegex: ${{ needs.compute-version.outputs.tag_regex }}
-          maxIssues: ${{ inputs.changelog_max_issues }}
+#      - id: generateReleaseChangelog
+#        name: "📝 Generate release changelog"
+#        uses: heinrichreimer/action-github-changelog-generator@v2.4
+#        with:
+#          output: changelog.md
+#          token: ${{ secrets.GITHUB_TOKEN }}
+#          stripGeneratorNotice: "true"
+#          sinceTag: ${{ steps.getPreviousTag.outputs.previous_tag }}
+#          dueTag: ${{ needs.compute-version.outputs.tag_version }}
+#          excludeTagsRegex: ${{ needs.compute-version.outputs.tag_regex }}
+#          maxIssues: ${{ inputs.changelog_max_issues }}
 
 #      - id: publish
 #        name: "🚀 Publish"
@@ -163,15 +163,15 @@ jobs:
 #          CURSE_RELEASE_TYPE: ${{ inputs.curse_release_type }}
 #          crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
 #
-#      - name: "🚀 Create GitHub release"
-#        uses: actions/create-release@v1
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        with:
-#          tag_name: ${{ needs.compute-version.outputs.tag_version }}
-#          release_name: ${{ needs.compute-version.outputs.release_text }}
-#          body_path: changelog.md
-#          prerelease: ${{ inputs.curse_release_type != 'release' }}
+      - name: "🚀 Create GitHub release"
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.compute-version.outputs.tag_version }}
+          release_name: ${{ needs.compute-version.outputs.release_text }}
+          body_path: changelog.md
+          prerelease: ${{ inputs.curse_release_type != 'release' }}
 
 #  notify-build-end:
 #    needs: [ "compute-version", "notify-build-start", "gradle" ]
