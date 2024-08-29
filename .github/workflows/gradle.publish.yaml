@@ -138,7 +138,7 @@ jobs:
           echo "" >> changelog.md
           echo "### Commits:" >> changelog.md
           echo "" >> changelog.md
-          echo "$(git log --pretty=format:"- %s ([commit](${{ github.server_url }}/${{ github.repository }}/commit/%H))%n" ${{ steps.getPreviousTag.outputs.previous_tag }}..${{ needs.compute-version.outputs.tag_version }})" >> changelog.md
+          echo "$(git log --pretty=format:"- %s ([commit](${{ github.server_url }}/${{ github.repository }}/commit/%H))" ${{ steps.getPreviousTag.outputs.previous_tag }}..${{ needs.compute-version.outputs.tag_version }})" >> changelog.md
           cat changelog.md
 
 #      - id: generateReleaseChangelog
