@@ -132,7 +132,11 @@ jobs:
       - id: generateReleaseChangelog
         name: "📝 Generate release changelog"
         run: |
-          git log --pretty=format:"- %s ([commit](${{ github.server_url }}/${{ github.repository }}/commit/%H))" ${{ steps.getPreviousTag.outputs.previous_tag }}..${{ needs.compute-version.outputs.tag_version }}
+          echo "# Changelog\n" > changelog.md
+          echo "[Full Changelog](${{ github.server_url }}/${{ github.repository }}/compare/${{ steps.getPreviousTag.outputs.previous_tag }}..${{ needs.compute-version.outputs.tag_version }})\n" >> changelog.md
+          echo "**Commits:**\n" >> changelog.md
+          echo $(git log --pretty=format:"- %s ([commit](${{ github.server_url }}/${{ github.repository }}/commit/%H))" ${{ steps.getPreviousTag.outputs.previous_tag }}..${{ needs.compute-version.outputs.tag_version }}) >> changelog.md
+          cat changelog.md
 
 #      - id: generateReleaseChangelog
 #        name: "📝 Generate release changelog"
