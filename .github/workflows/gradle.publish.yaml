@@ -132,7 +132,7 @@ jobs:
       - id: generateReleaseChangelog
         name: "📝 Generate release changelog"
         run: |
-          git log --pretty=oneline ${{ steps.getPreviousTag.outputs.previous_tag }}..${{ needs.compute-version.outputs.tag_version }}
+          git log --pretty=format:"- %s ([commit %h](${{ github.server_url }}/${{ github.repository }}/tree/%H))"" ${{ steps.getPreviousTag.outputs.previous_tag }}..${{ needs.compute-version.outputs.tag_version }}
 
 #      - id: generateReleaseChangelog
 #        name: "📝 Generate release changelog"
