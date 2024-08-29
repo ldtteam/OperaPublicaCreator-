@@ -140,19 +140,18 @@ jobs:
           echo "" >> changelog.md
           echo "$(git log --pretty=format:"- %s ([commit](${{ github.server_url }}/${{ github.repository }}/commit/%H))" ${{ steps.getPreviousTag.outputs.previous_tag }}..${{ needs.compute-version.outputs.tag_version }})" >> changelog.md
           sed -i -E "s|\(#([[:digit:]]+)\)|([#\1](${{ github.server_url }}/${{ github.repository }}/pull/\1))|" changelog.md
-          cat changelog.md
 
-#      - id: generateReleaseChangelog
-#        name: "📝 Generate release changelog"
-#        uses: heinrichreimer/action-github-changelog-generator@v2.4
-#        with:
-#          output: changelog.md
-#          token: ${{ secrets.GITHUB_TOKEN }}
-#          stripGeneratorNotice: "true"
-#          sinceTag: ${{ steps.getPreviousTag.outputs.previous_tag }}
-#          dueTag: ${{ needs.compute-version.outputs.tag_version }}
-#          excludeTagsRegex: ${{ needs.compute-version.outputs.tag_regex }}
-#          maxIssues: ${{ inputs.changelog_max_issues }}
+      - id: generateReleaseChangelog
+        name: "📝 Generate release changelog"
+        uses: heinrichreimer/action-github-changelog-generator@v2.4
+        with:
+          output: changelog.md
+          token: ${{ secrets.GITHUB_TOKEN }}
+          stripGeneratorNotice: "true"
+          sinceTag: ${{ steps.getPreviousTag.outputs.previous_tag }}
+          dueTag: ${{ needs.compute-version.outputs.tag_version }}
+          excludeTagsRegex: ${{ needs.compute-version.outputs.tag_regex }}
+          maxIssues: ${{ inputs.changelog_max_issues }}
 
 #      - id: publish
 #        name: "🚀 Publish"
