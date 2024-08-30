@@ -1163,21 +1163,21 @@ tasks.withType(Jar.class, {task ->
 
 tasks.register("outputChangelogHeader") {
     ext {
-        f = file("changelog.md")
+        changelog = file("changelog.md")
         output = opc.getProperty("customChangelogHeader")
     }
     doLast {
-        f << output + "\n\n"
+        changelog << output + "\n\n"
     }
 }
 
 tasks.register("outputChangelogFooter") {
     ext {
-        f = file("changelog.md")
+        changelog = file("changelog.md")
         output = opc.getProperty("customChangelogFooter")
     }
     doLast {
-        f << output
+        changelog << output
     }
 }
 
