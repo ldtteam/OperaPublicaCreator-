@@ -1161,6 +1161,24 @@ tasks.withType(Jar.class, {task ->
     task.duplicatesStrategy 'exclude'
 })
 
+tasks.register("outputChangelogHeader", Task.class) {
+    doLast {
+        if (opc.hasPropertySet("customChangelogHeader")) {
+            def changelogFile = new java.nio.File("changelog.md")
+            changelogFile << opc.getProperty("customChangelogHeader") + "\n\n"
+        }
+    }
+}
+
+tasks.register("outputChangelogFooter", Task.class) {
+    doLast {
+        if (opc.hasPropertySet("customChangelogFooter")) {
+            def changelogFile = new java.nio.File("changelog.md")
+            changelogFile << opc.getProperty("customChangelogFooter")
+        }
+    }
+}
+
 if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translationMergeSources") && opc.hasPropertySet("translationMergeDestination")) {
     task mergeTranslations {
         doLast {

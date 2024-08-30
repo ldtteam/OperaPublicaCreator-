@@ -136,9 +136,12 @@ jobs:
           echo "" >> changelog.md
           echo "[Full Changelog](${{ github.server_url }}/${{ github.repository }}/compare/${{ steps.getPreviousTag.outputs.previous_tag }}..${{ needs.compute-version.outputs.tag_version }})" >> changelog.md
           echo "" >> changelog.md
+          ./gradlew outputChangelogHeader
           echo "### Commits:" >> changelog.md
           echo "" >> changelog.md
           echo "$(git log --pretty=format:"- %s ([commit](${{ github.server_url }}/${{ github.repository }}/commit/%H))" ${{ steps.getPreviousTag.outputs.previous_tag }}..${{ needs.compute-version.outputs.tag_version }})" >> changelog.md
+          echo "" >> changelog.md
+          ./gradlew outputChangelogFooter
           sed -i -E "s|\(#([[:digit:]]+)\)|([#\1](${{ github.server_url }}/${{ github.repository }}/pull/\1))|" changelog.md
 
       - id: publish
