@@ -1164,7 +1164,6 @@ tasks.withType(Jar.class, {task ->
 tasks.register("outputChangelogHeader") {
     def changelog = new java.io.File("changelog.md")
     def output = opc.getProperty("customChangelogHeader")
-    println output.getClass()
     doLast {
         changelog << output + "\n\n"
     }
