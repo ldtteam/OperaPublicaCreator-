@@ -141,7 +141,7 @@ jobs:
           echo "" >> changelog.md
           echo "$(git log --pretty=format:"- %s ([commit](${{ github.server_url }}/${{ github.repository }}/commit/%H))" ${{ steps.getPreviousTag.outputs.previous_tag }}..${{ needs.compute-version.outputs.tag_version }})" >> changelog.md
           echo "" >> changelog.md
-          ./gradlew --build-cachee outputChangelogFooter -PmodVersion=${{ needs.compute-version.outputs.mod_version }} -PmodVersionSuffix=${{ needs.compute-version.outputs.suffix }}
+          ./gradlew --build-cache outputChangelogFooter -PmodVersion=${{ needs.compute-version.outputs.mod_version }} -PmodVersionSuffix=${{ needs.compute-version.outputs.suffix }}
           sed -i -E "s|\(#([[:digit:]]+)\)|([#\1](${{ github.server_url }}/${{ github.repository }}/pull/\1))|" changelog.md
 
       - id: publish
