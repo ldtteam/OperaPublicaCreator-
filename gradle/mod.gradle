@@ -1161,7 +1161,7 @@ tasks.withType(Jar.class, {task ->
     task.duplicatesStrategy 'exclude'
 })
 
-tasks.register("outputChangelogHeader", Task.class) {
+task outputChangelogHeader() {
     ext {
         f = file("changelog.md")
         output = opc.getProperty("customChangelogHeader")
@@ -1171,7 +1171,7 @@ tasks.register("outputChangelogHeader", Task.class) {
     }
 }
 
-tasks.register("outputChangelogFooter", Task.class) {
+task outputChangelogFooter() {
     ext {
         f = file("changelog.md")
         output = opc.getProperty("customChangelogFooter")
