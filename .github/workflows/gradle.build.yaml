@@ -70,4 +70,4 @@ jobs:
 
       - id: build
         name: "🏗️ Build"
-        run: ./gradlew --build-cache --configuration-cache ${{ inputs.gradle_tasks }} -PmodVersion=${{ needs.compute-version.outputs.mod_version }} -PmodVersionSuffix=${{ needs.compute_version.outputs.suffix }}
+        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }} -PmodVersion=${{ needs.compute-version.outputs.mod_version }} -PmodVersionSuffix=${{ needs.compute_version.outputs.suffix }}
