@@ -1167,7 +1167,7 @@ tasks.register("outputChangelogHeader") {
     }
     doLast {
         def changelog = new java.io.File("changelog.md")
-        changelog.append(ext.output + "\n\n")
+        changelog.append(output + "\n\n")
     }
 }
 
@@ -1177,7 +1177,7 @@ tasks.register("outputChangelogFooter") {
     }
     doLast {
         def changelog = new java.io.File("changelog.md")
-        changelog.append(ext.output)
+        changelog.append(output)
     }
 }
 
