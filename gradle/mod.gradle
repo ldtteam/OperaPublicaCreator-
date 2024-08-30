@@ -1167,7 +1167,7 @@ tasks.register("outputChangelogHeader") {
         output = opc.getProperty("customChangelogHeader")
     }
     doLast {
-        changelog << output + "\n\n"
+        ext.changelog << ext.output + "\n\n"
     }
 }
 
@@ -1177,7 +1177,7 @@ tasks.register("outputChangelogFooter") {
         output = opc.getProperty("customChangelogFooter")
     }
     doLast {
-        changelog << output
+        ext.changelog << ext.output
     }
 }
 
