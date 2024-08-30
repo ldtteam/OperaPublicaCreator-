@@ -1164,7 +1164,7 @@ tasks.withType(Jar.class, {task ->
 tasks.register("outputChangelogHeader", Task.class) {
     doLast {
         if (opc.hasPropertySet("customChangelogHeader")) {
-            def changelogFile = new java.nio.File("changelog.md")
+            def changelogFile = new java.io.File("changelog.md")
             changelogFile << opc.getProperty("customChangelogHeader") + "\n\n"
         }
     }
@@ -1173,7 +1173,7 @@ tasks.register("outputChangelogHeader", Task.class) {
 tasks.register("outputChangelogFooter", Task.class) {
     doLast {
         if (opc.hasPropertySet("customChangelogFooter")) {
-            def changelogFile = new java.nio.File("changelog.md")
+            def changelogFile = new java.io.File("changelog.md")
             changelogFile << opc.getProperty("customChangelogFooter")
         }
     }
