@@ -1162,20 +1162,22 @@ tasks.withType(Jar.class, {task ->
 })
 
 tasks.register("outputChangelogHeader", Task.class) {
+    ext {
+        output = opc.getProperty("customChangelogHeader")
+    }
     doLast {
-        if (opc.hasPropertySet("customChangelogHeader")) {
-            def changelogFile = new java.io.File("changelog.md")
-            changelogFile << opc.getProperty("customChangelogHeader") + "\n\n"
-        }
+        def changelogFile = file("changelog.md")
+        changelogFile << output + "\n\n"
     }
 }
 
 tasks.register("outputChangelogFooter", Task.class) {
+    ext {
+        output = opc.getProperty("customChangelogFooter")
+    }
     doLast {
-        if (opc.hasPropertySet("customChangelogFooter")) {
-            def changelogFile = new java.io.File("changelog.md")
-            changelogFile << opc.getProperty("customChangelogFooter")
-        }
+        def changelogFile = file("changelog.md")
+        changelogFile << output
     }
 }
 
