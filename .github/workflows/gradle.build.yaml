@@ -23,7 +23,8 @@ permissions:
   contents: read
 
 jobs:
-  compute-suffix:
+  generate-build-information:
+    name: "Generate build information"
     runs-on: ubuntu-latest
     outputs:
       branch_suffix: ${{ steps.computeBranchSuffix.outputs.branch_suffix }}
@@ -41,13 +42,14 @@ jobs:
           echo "branch_suffix=$cleanedBranchName" >> "$GITHUB_OUTPUT"
 
   compute-version:
-    needs: [ "compute-suffix" ]
+    needs: [ "generate-build-information" ]
     uses: ./.github/workflows/gradle.version.yaml
     with:
-      suffix: ${{ format('branch-{0}', needs.compute-suffix.outputs.branch_suffix) }}
+      suffix: ${{ needs.generate-build-information.outputs.branch_suffix }}
 
   build:
     needs: [ "compute-version" ]
+    name: "🏗️ Build"
     runs-on: ubuntu-latest
     steps:
       - id: checkout
@@ -68,6 +70,4 @@ jobs:
 
       - id: build
         name: "🏗️ Build"
-        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
-        env:
-          Version: "${{ needs.compute-version.outputs.version }}"
+        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }} -PmodVersion=${{ needs.compute-version.outputs.mod_version }} -PmodVersionSuffix=${{ needs.compute_version.outputs.suffix }}

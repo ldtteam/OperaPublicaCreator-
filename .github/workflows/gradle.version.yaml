@@ -4,14 +4,27 @@ on:
   workflow_call:
     inputs:
       suffix:
-        description: "The suffix to finish the version string with"
-        required: false
+        description: "The release suffix"
         type: string
-        default: ""
     outputs:
-      version:
-        description: "The computed version"
-        value: ${{ jobs.compute-version.outputs.version }}
+      minecraft_version:
+        description: "The minecraft version"
+        value: ${{ jobs.compute-version.outputs.minecraft_version }}
+      mod_version:
+        description: "The mod version"
+        value: ${{ jobs.compute-version.outputs.mod_version }}
+      suffix:
+        description: "The input suffix"
+        value: ${{ inputs.suffix }}
+      full_version:
+        description: "The full version string"
+        value: ${{ jobs.compute-version.outputs.full_version }}
+      tag_version:
+        description: "The version that the tag should get"
+        value: ${{ jobs.compute-version.outputs.tag_version }}
+      release_text:
+        description: "The text for the release version"
+        value: ${{ jobs.compute-version.outputs.release_text }}
 
 permissions:
   contents: read
@@ -20,28 +33,53 @@ jobs:
   compute-version:
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.version }}
+      minecraft_version: ${{ steps.generateMinecraftVersion.outputs.minecraft_version }}
+      mod_version: ${{ steps.generateModVersion.outputs.version }}
+      full_version: ${{ steps.generateFullVersion.outputs.full_version }}
+      tag_version: ${{ steps.generateTagVersion.outputs.tag_version }}
+      release_text: ${{ steps.generateReleaseText.outputs.release_text }}
     steps:
       - id: checkout
         name: "📦 Checkout"
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1000
           fetch-tags: true
 
-      - id: minecraftVersion
-        name: "📦 Extract Minecraft version"
+      - id: generateMinecraftVersion
+        name: "Generate Minecraft version"
         run: |
           cat gradle.properties | grep exactMinecraftVersion | cut -d "=" -f 2 > minecraft_version.txt
           echo "Minecraft version: $(cat minecraft_version.txt)"
           echo "minecraft_version=$(cat minecraft_version.txt)" >> "$GITHUB_OUTPUT"
 
-      - id: version
-        name: "🔢 Compute version"
+      - id: generateModVersion
+        name: "Generate mod version"
         uses: PaulHatch/semantic-version@v5.4.0
         with:
-          tag_prefix: "v"
+          tag_prefix: "v${{ steps.generateMinecraftVersion.outputs.minecraft_version }}-"
           search_commit_body: true
           debug: true
           bump_each_commit: true
-          version_format: "${{ steps.minecraftVersion.outputs.minecraft_version }}-${major}.${minor}.${patch}-${{ inputs.suffix }}"
+          version_format: "${major}.${minor}.${patch}"
+
+      - id: generateFullVersion
+        name: "Generate full version"
+        run: |
+          full_version="${{ steps.generateMinecraftVersion.outputs.minecraft_version }}-${{ steps.generateModVersion.outputs.version }}-${{ inputs.suffix }}"
+          echo "Full version: ${full_version}"
+          echo "full_version=${full_version}" >> "$GITHUB_OUTPUT"
+
+      - id: generateTagVersion
+        name: "Generate tag version"
+        run: |
+          tag_version="v${{ steps.generateMinecraftVersion.outputs.minecraft_version }}-${{ steps.generateModVersion.outputs.version }}"
+          echo "Tag version: ${tag_version}"
+          echo "tag_version=${tag_version}" >> "$GITHUB_OUTPUT"
+
+      - id: generateReleaseText
+        name: "Generate release text"
+        run: |
+          release_text="Version ${{ steps.generateModVersion.outputs.version }} for Minecraft ${{ steps.generateMinecraftVersion.outputs.minecraft_version }}"
+          echo "Release text: ${release_text}"
+          echo "release_text=${release_text}" >> "$GITHUB_OUTPUT"
