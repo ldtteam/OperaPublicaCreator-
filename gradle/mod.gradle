@@ -1161,6 +1161,22 @@ tasks.withType(Jar.class, {task ->
     task.duplicatesStrategy 'exclude'
 })
 
+tasks.register("outputChangelogHeader") {
+    def changelog = file("changelog.md")
+    def header = opc.getProperty("customChangelogHeader")
+    doLast {
+        changelog << header + "\n\n"
+    }
+}
+
+tasks.register("outputChangelogFooter") {
+    def changelog = file("changelog.md")
+    def footer = opc.getProperty("outputChangelogFooter")
+    doLast {
+        changelog << footer
+    }
+}
+
 if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translationMergeSources") && opc.hasPropertySet("translationMergeDestination")) {
     tasks.register("mergeTranslations") {
         def translationSourcesNames = opc.getStringListProperty("translationMergeSources");

@@ -115,6 +115,13 @@ jobs:
           dependency-graph: generate-and-submit
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
+      - id: getPreviousTag
+        name: "📝 Get previous tag"
+        run: |
+          previous_tag=$(git describe --tags --abbrev=0 HEAD)
+          echo "Previous tag: ${previous_tag}"
+          echo "previous_tag=${previous_tag}" >> "$GITHUB_OUTPUT"
+
       - id: tagLocalBuild
         name: "🏷️ Tag local build"
         run: |
@@ -124,15 +131,18 @@ jobs:
 
       - id: generateReleaseChangelog
         name: "📝 Generate release changelog"
-        uses: heinrichreimer/action-github-changelog-generator@v2.4
-        with:
-          output: changelog.md
-          token: ${{ secrets.GITHUB_TOKEN }}
-          stripGeneratorNotice: "true"
-          onlyLastTag: true
-          dueTag: ${{ needs.compute-version.outputs.tag_version }}
-          excludeTagsRegex: ${{ needs.compute-version.outputs.tag_regex }}
-          maxIssues: ${{ inputs.changelog_max_issues }}
+        run: |
+          echo "# Changelog" > changelog.md
+          echo "" >> changelog.md
+          echo "[Full Changelog](${{ github.server_url }}/${{ github.repository }}/compare/${{ steps.getPreviousTag.outputs.previous_tag }}..${{ needs.compute-version.outputs.tag_version }})" >> changelog.md
+          echo "" >> changelog.md
+          ./gradlew --build-cache outputChangelogHeader -PmodVersion=${{ needs.compute-version.outputs.mod_version }} -PmodVersionSuffix=${{ needs.compute-version.outputs.suffix }}
+          echo "### Commits:" >> changelog.md
+          echo "" >> changelog.md
+          echo "$(git log --pretty=format:"- %s ([commit](${{ github.server_url }}/${{ github.repository }}/commit/%H))" ${{ steps.getPreviousTag.outputs.previous_tag }}..${{ needs.compute-version.outputs.tag_version }})" >> changelog.md
+          echo "" >> changelog.md
+          ./gradlew --build-cache outputChangelogFooter -PmodVersion=${{ needs.compute-version.outputs.mod_version }} -PmodVersionSuffix=${{ needs.compute-version.outputs.suffix }}
+          sed -i -E "s|\(#([[:digit:]]+)\)|([#\1](${{ github.server_url }}/${{ github.repository }}/pull/\1))|" changelog.md
 
       - id: publish
         name: "🚀 Publish"
