@@ -30,7 +30,7 @@ jobs:
   compute-version:
     uses: ./.github/workflows/gradle.version.yaml
     with:
-      suffix: pre-release
+      suffix: rc
 
   gradle:
     needs: [ "compute-version" ]
@@ -57,10 +57,9 @@ jobs:
 
       - id: build
         name: "🏗️ Build"
-        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }}
+        run: ./gradlew --build-cache ${{ inputs.gradle_tasks }} -PmodVersion=${{ needs.compute-version.outputs.mod_version }} -PmodVersionSuffix=${{ needs.compute-version.outputs.suffix }}
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_USERNAME: ${{ github.actor }}
           crowdinKey: ${{ secrets.CROWDIN_API_KEY }}
-          Version: "${{ needs.compute-version.outputs.version }}"
