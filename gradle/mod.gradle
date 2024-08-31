@@ -1162,46 +1162,46 @@ tasks.withType(Jar.class, {task ->
 })
 
 if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translationMergeSources") && opc.hasPropertySet("translationMergeDestination")) {
-    task mergeTranslations {
+    tasks.register("mergeTranslations") {
+        def translationSourcesNames = opc.getStringListProperty("translationMergeSources");
+        def translationTargetsNames = opc.getStringListProperty("translationMergeDestination");
+        
+        def translationSources = translationSourcesNames.collect {file(it)};
+        def translationTargets = translationTargetsNames.collect {file(it)};
+
         doLast {
-            def translationSources = opc.getStringListProperty("translationMergeSources");
             if (translationSources.size() >= 1) {
-                def initialSource = translationSources[0];
-                def initialFile = project.file(initialSource);
+                def initialFile = translationSources[0];
                 if (!initialFile.exists()) {
                     throw new RuntimeException("Translation source file ${initialFile} does not exist!")
                 }
 
                 def slurper = new JsonSlurper()
 
-                project.getLogger().lifecycle(" > Reading translations from: " + initialSource)
+                getLogger().lifecycle(" > Reading translations from: " + translationSourcesNames[0])
                 def initial = slurper.parse(initialFile, 'UTF-8')
 
                 if (translationSources.size() >= 2) {
                     for (i in 1..<translationSources.size()) {
-                        def otherSource = translationSources[i];
-                        def otherFile = project.file(otherSource);
+                        def otherFile = translationSources[i];
                         if (!otherFile.exists()) {
                             throw new RuntimeException("Translation source file ${otherFile} does not exist!")
                         }
 
-                        project.getLogger().lifecycle(" > Reading translations from: " + otherSource)
+                        getLogger().lifecycle(" > Reading translations from: " + translationSourcesNames[i])
                         def other = slurper.parse(otherFile, 'UTF-8')
 
                         initial += other
                     }
                 }
 
-
-                def translationTargets = opc.getStringListProperty("translationMergeDestination");
                 for (i in 0..<translationTargets.size()) {
-                    def targetPath = translationTargets[i];
-                    def targetFile = project.file(targetPath);
+                    def targetFile = translationTargets[i];
                     if (targetFile.exists()) {
                         targetFile.delete()
                     }
 
-                    project.getLogger().lifecycle(" > Writing translations to: " + targetPath)
+                    getLogger().lifecycle(" > Writing translations to: " + translationTargetsNames[i])
                     targetFile.write(JsonOutput.prettyPrint(JsonOutput.toJson(initial)), 'UTF-8')
                 }
             }
