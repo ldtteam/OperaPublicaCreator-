@@ -271,7 +271,7 @@ def versionString
 if (versionSuffix == "") {
     versionString = versionNumber + "-" + project.exactMinecraftVersion
 } else {
-    versionString = versionNumber + "-" + project.exactMinecraftVersion + "-" + versionSuffix
+    versionString = versionNumber + "-" + project.exactMinecraftVersion + versionSuffix
 }
 
 if (opc.isFeatureEnabled("MCVersionBasedVersioning")

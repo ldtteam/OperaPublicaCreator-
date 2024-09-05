@@ -30,7 +30,7 @@ jobs:
   compute-version:
     uses: ./.github/workflows/gradle.version.yaml
     with:
-      suffix: rc
+      suffix: -rc
 
   gradle:
     needs: [ "compute-version" ]

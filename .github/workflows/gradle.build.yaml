@@ -45,7 +45,7 @@ jobs:
     needs: [ "generate-build-information" ]
     uses: ./.github/workflows/gradle.version.yaml
     with:
-      suffix: ${{ needs.generate-build-information.outputs.branch_suffix }}
+      suffix: -${{ needs.generate-build-information.outputs.branch_suffix }}
 
   build:
     needs: [ "compute-version" ]
