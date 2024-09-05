@@ -1241,7 +1241,8 @@ else
     }
 }
 
-if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLowerCase() == "true") {
+if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLowerCase() == "true" &&
+        System.getenv().containsKey("crowdinKey") && !project.gradle.startParameter.isOffline()) {
     task downloadCrowdin() {
         ext {
             output = file('build/crowdin_raw.zip')
