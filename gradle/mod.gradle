@@ -1129,8 +1129,8 @@ if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLower
         onlyIf {
             !downloadCrowdin.state.skipped
         }
-        archiveBaseName = project.name
-        archiveVersion = project.version
+        archiveBaseName.set(project.name)
+        archiveVersion.set(project.version)
         archiveClassifier.set('crowdin')
         destinationDirectory = file('build/distributions')
         from(zipTree(downloadCrowdin.output)){
