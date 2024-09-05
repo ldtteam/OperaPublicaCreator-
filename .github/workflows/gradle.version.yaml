@@ -43,8 +43,7 @@ jobs:
         name: "📦 Checkout"
         uses: actions/checkout@v4
         with:
-          fetch-depth: 1000
-          fetch-tags: true
+          fetch-depth: 0
 
       - id: generateMinecraftVersion
         name: "Generate Minecraft version"
@@ -62,6 +61,13 @@ jobs:
           debug: true
           bump_each_commit: true
           version_format: "${major}.${minor}.${patch}"
+
+      - id: outputDebugInformation
+        name: "Output debug information"
+        run: |
+          echo "Version: ${{ steps.generateModVersion.outputs.version }}"
+          echo "Debug:"
+          echo "${{ steps.generateModVersion.outputs.debug_output }}"
 
       - id: generateFullVersion
         name: "Generate full version"
