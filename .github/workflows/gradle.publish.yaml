@@ -53,11 +53,11 @@ jobs:
       - id: generateReleaseSuffix
         name: "Generate release suffix"
         run: |
-          release_version_suffix="alpha"
+          release_version_suffix="-alpha"
           if [[ ${{ inputs.curse_release_type }} == release ]]; then
             release_version_suffix=""
           elif [[ ${{ inputs.curse_release_type }} == beta ]]; then
-            release_version_suffix="snapshot"
+            release_version_suffix="-snapshot"
           fi
           echo "Release version suffix: ${release_version_suffix}"
           echo "release_version_suffix=${release_version_suffix}" >> "$GITHUB_OUTPUT"
@@ -115,19 +115,19 @@ jobs:
           dependency-graph: generate-and-submit
           cache-encryption-key: ${{ secrets.GRADLE_ENCRYPTION_KEY }}
 
-      - id: getPreviousTag
-        name: "📝 Get previous tag"
-        run: |
-          previous_tag=$(git describe --tags --abbrev=0 HEAD)
-          echo "Previous tag: ${previous_tag}"
-          echo "previous_tag=${previous_tag}" >> "$GITHUB_OUTPUT"
-
       - id: tagLocalBuild
         name: "🏷️ Tag local build"
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "maintainer+github@ldtteam.com"
-          git tag -a "${{ needs.compute-version.outputs.tag_version }}" -m "${{ needs.compute-version.outputs.release_text }}"
+          git tag -f -a "${{ needs.compute-version.outputs.tag_version }}" -m "${{ needs.compute-version.outputs.release_text }}"
+
+      - id: getPreviousTag
+        name: "📝 Get previous tag"
+        run: |
+          previous_tag=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1))
+          echo "Previous tag: ${previous_tag}"
+          echo "previous_tag=${previous_tag}" >> "$GITHUB_OUTPUT"
 
       - id: generateReleaseChangelog
         name: "📝 Generate release changelog"
