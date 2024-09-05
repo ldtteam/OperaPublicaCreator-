@@ -67,7 +67,7 @@ jobs:
         run: |
           echo "Version: ${{ steps.generateModVersion.outputs.version }}"
           echo "Debug:"
-          echo "${{ steps.generateModVersion.outputs.debug_output }}"
+          echo '${{ steps.generateModVersion.outputs.debug_output }}'
 
       - id: generateFullVersion
         name: "Generate full version"
