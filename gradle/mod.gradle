@@ -269,9 +269,9 @@ def versionNumber = opc.hasPropertySet("modVersion") ? opc.getProperty("modVersi
 def versionSuffix = opc.hasPropertySet("modVersionSuffix") ? opc.getProperty("modVersionSuffix") : "alpha"
 def versionString
 if (versionSuffix == "") {
-    versionString = versionNumber + "-" + project.exactMinecraftVersion
+    versionString = project.exactMinecraftVersion + "-" + versionNumber
 } else {
-    versionString = versionNumber + "-" + project.exactMinecraftVersion + versionSuffix
+    versionString = project.exactMinecraftVersion + "-" + versionNumber + versionSuffix
 }
 
 if (opc.isFeatureEnabled("MCVersionBasedVersioning")
@@ -1239,58 +1239,6 @@ else
     task("curseforge") {
         //Noop
     }
-}
-
-if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLowerCase() == "true" &&
-        System.getenv().containsKey("crowdinKey") && !project.gradle.startParameter.isOffline()) {
-    task downloadCrowdin() {
-        ext {
-            output = file('build/crowdin_raw.zip')
-            update = file('build/crowdin.json')
-            id = project.crowdinId
-        }
-        onlyIf {
-            System.getenv().containsKey("crowdinKey") && !project.gradle.startParameter.isOffline()
-        }
-        doLast {
-            download {
-                src "https://api.crowdin.com/api/project/${id}/export?key=${System.getenv("crowdinKey")}&json"
-                dest update
-                overwrite true
-            }
-            if (!update.text.contains('success')) {
-                throw new RuntimeException("Crowdin export failed, see ${update} for more info")
-            }
-            download {
-                src "https://api.crowdin.com/api/project/${id}/download/all.zip?key=${System.getenv("crowdinKey")}"
-                dest output
-                overwrite true
-            }
-        }
-    }
-
-    task crowdin(type: Zip) {
-        duplicatesStrategy = "include"
-        dependsOn downloadCrowdin
-        onlyIf {
-            !downloadCrowdin.state.skipped
-        }
-        archiveBaseName.set(project.name)
-        archiveVersion.set(project.version)
-        archiveClassifier.set('crowdin')
-        destinationDirectory = file('build/distributions')
-        from(zipTree(downloadCrowdin.output)){
-            eachFile {
-                if (!it.path.startsWith('assets/')) {
-                    it.relativePath = new RelativePath(true, it.relativePath.segments.drop(4))
-                }
-            }
-            exclude { it.isDirectory() }
-            rename { it.toLowerCase() }
-        }
-    }
-
-    tasks.processResources.dependsOn tasks.crowdin
 }
 
 tasks.withType(org.gradle.api.tasks.Copy.class, {task ->
