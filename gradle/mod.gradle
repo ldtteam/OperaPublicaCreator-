@@ -1144,7 +1144,7 @@ if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLower
         }
     }
 
-    tasks.processResources.dependsOn crowdin
+    tasks.processResources.dependsOn tasks.crowdin
 }
 
 tasks.withType(org.gradle.api.tasks.Copy.class, {task ->
