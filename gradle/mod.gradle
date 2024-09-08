@@ -20,7 +20,7 @@ buildscript {
         classpath "net.minecraftforge.gradle:ForgeGradle:6.+"
         classpath "gradle.plugin.com.github.jengelman.gradle.plugins:shadow:7.0.0"
         classpath "de.undercouch:gradle-download-task:4.1.2"
-        classpath "org.zaproxy.gradle:gradle-plugin-crowdin:0.2.1"
+        classpath "org.zaproxy.gradle:gradle-plugin-crowdin:0.4.0"
         classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:3.3"
         classpath 'org.parchmentmc:librarian:1.+'
         classpath 'org.ajoberstar.grgit:grgit-gradle:5.+'
@@ -265,13 +265,19 @@ if (opc.isFeatureEnabled("GitInformation")) {
 
 group = project.modGroup
 
+def useMCVersionOrder = opc.isFeatureEnabled("MCVersionOrderFirst")
+
 def versionNumber = opc.hasPropertySet("modVersion") ? opc.getProperty("modVersion") : "0.0.1"
 def versionSuffix = opc.hasPropertySet("modVersionSuffix") ? opc.getProperty("modVersionSuffix") : "alpha"
 def versionString
 if (versionSuffix == "") {
-    versionString = project.exactMinecraftVersion + "-" + versionNumber
+    versionString = useMCVersionOrder
+            ? project.exactMinecraftVersion + "-" + versionNumber
+            : versionNumber + "-" + project.exactMinecraftVersion
 } else {
-    versionString = project.exactMinecraftVersion + "-" + versionNumber + versionSuffix
+    versionString = useMCVersionOrder
+            ? project.exactMinecraftVersion + "-" + versionNumber + versionSuffix
+            : versionNumber + "-" + project.exactMinecraftVersion + versionSuffix
 }
 
 if (opc.isFeatureEnabled("MCVersionBasedVersioning")
