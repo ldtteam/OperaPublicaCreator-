@@ -46,16 +46,6 @@ jobs:
           fetch-depth: 1000
           fetch-tags: true
 
-      - id: getVersionOrdering
-        name: "Get version ordering"
-        run: |
-          uses_mc_version_order_first=$(cat gradle.properties | grep usesMCVersionOrderFirst | cut -d "=" -f 2)
-          if [ -z "$uses_mc_version_order_first" ]; then
-            uses_mc_version_order_first=false
-          fi
-          echo "Using MC version order first: $uses_mc_version_order_first"
-          echo "uses_mc_version_order_first=$uses_mc_version_order_first" >> "$GITHUB_OUTPUT"
-
       - id: generateMinecraftVersion
         name: "Generate Minecraft version"
         run: |
@@ -76,11 +66,7 @@ jobs:
       - id: generateFullVersion
         name: "Generate full version"
         run: |
-          if [ ${{ steps.getVersionOrdering.outputs.uses_mc_version_order_first }} == "true" ]
-            full_version="${{ steps.generateMinecraftVersion.outputs.minecraft_version }}-${{ steps.generateModVersion.outputs.version }}${{ inputs.suffix }}"
-          else
-            full_version="${{ steps.generateModVersion.outputs.version }}-${{ steps.generateMinecraftVersion.outputs.minecraft_version }}${{ inputs.suffix }}"
-          fi
+          full_version="${{ steps.generateModVersion.outputs.version }}-${{ steps.generateMinecraftVersion.outputs.minecraft_version }}${{ inputs.suffix }}"
           echo "Full version: ${full_version}"
           echo "full_version=${full_version}" >> "$GITHUB_OUTPUT"
 

@@ -269,19 +269,13 @@ if (opc.isFeatureEnabled("GitInformation")) {
 
 group = project.modGroup
 
-def useMCVersionOrder = opc.isFeatureEnabled("MCVersionOrderFirst")
-
 def versionNumber = opc.hasPropertySet("modVersion") ? opc.getProperty("modVersion") : "0.0.1"
 def versionSuffix = opc.hasPropertySet("modVersionSuffix") ? opc.getProperty("modVersionSuffix") : "alpha"
 def versionString
 if (versionSuffix == "") {
-    versionString = useMCVersionOrder
-            ? project.exactMinecraftVersion + "-" + versionNumber
-            : versionNumber + "-" + project.exactMinecraftVersion
+    versionString = versionNumber + "-" + project.exactMinecraftVersion
 } else {
-    versionString = useMCVersionOrder
-            ? project.exactMinecraftVersion + "-" + versionNumber + versionSuffix
-            : versionNumber + "-" + project.exactMinecraftVersion + versionSuffix
+    versionString = versionNumber + "-" + project.exactMinecraftVersion + versionSuffix
 }
 
 if (opc.isFeatureEnabled("MCVersionBasedVersioning")
