@@ -28,11 +28,11 @@ buildscript {
 }
 
 ext.opc = [
-        splitVersionNumber: { String versionNumber ->
+        splitVersionNumber               : { String versionNumber ->
             return versionNumber.split("\\.");
         },
 
-        buildVersionNumberWithOffset: { String sourceVersionNumber, String currentMCVersion, String relativeMCVersion, int versionElementIndex, int mcVersionElementIndex ->
+        buildVersionNumberWithOffset     : { String sourceVersionNumber, String currentMCVersion, String relativeMCVersion, int versionElementIndex, int mcVersionElementIndex ->
             String[] sourceVersionElements = opc.splitVersionNumber(sourceVersionNumber);
             String[] currentMCVersionElements = opc.splitVersionNumber(currentMCVersion);
             String[] relativeMCVersionElements = opc.splitVersionNumber(relativeMCVersion);
@@ -55,12 +55,12 @@ ext.opc = [
             return version;
         },
 
-        getEnvironmentPropertyName: { String propertyName ->
+        getEnvironmentPropertyName       : { String propertyName ->
             String[] propertyNameElements = propertyName.split("(?=\\p{Upper})");
             return String.join("_", propertyNameElements).toUpperCase();
         },
 
-        getProperty: { String propertyName ->
+        getProperty                      : { String propertyName ->
             if (project.hasProperty(propertyName) && project.getProperty(propertyName).toString().trim() != "") {
                 return project.getProperty(propertyName).toString().trim()
             }
@@ -69,7 +69,7 @@ ext.opc = [
             return System.getenv().containsKey(environmentPropertyName) ? System.getenv().get(environmentPropertyName).toString().trim() : ""
         },
 
-        getIntProperty: { String propertyName ->
+        getIntProperty                   : { String propertyName ->
             if (project.hasProperty(propertyName) && project.getProperty(propertyName).toString().trim() != "") {
                 return Integer.parseInt(project.getProperty(propertyName).toString().trim())
             }
@@ -78,7 +78,7 @@ ext.opc = [
             return System.getenv().containsKey(environmentPropertyName) ? Integer.parseInt(System.getenv().get(environmentPropertyName).toString().trim()) : 0
         },
 
-        getStringListProperty: { String propertyName ->
+        getStringListProperty            : { String propertyName ->
             if (!opc.hasRawPropertySet(propertyName)) {
                 def potentialResultList = new ArrayList<String>();
 
@@ -100,7 +100,7 @@ ext.opc = [
             String propertyValue = opc.getProperty(propertyName);
             String[] values = propertyValue.split(";")
             List<String> listValues = Arrays.asList(values);
-            listValues.removeIf({value -> value == null || value.trim().isEmpty() })
+            listValues.removeIf({ value -> value == null || value.trim().isEmpty() })
             return listValues.toArray(String[]::new);
         },
 
@@ -124,14 +124,14 @@ ext.opc = [
             String propertyValue = opc.getProperty(propertyName);
             String[] values = propertyValue.split(";")
             List<String> listValues = Arrays.asList(values);
-            listValues.removeIf({value -> value == null || value.trim().isEmpty() })
+            listValues.removeIf({ value -> value == null || value.trim().isEmpty() })
             if (listValues.size() == 0) {
                 return "";
             }
             return listValues.get(0);
         },
 
-        hasPropertySet: { String propertyName ->
+        hasPropertySet                   : { String propertyName ->
             boolean result = opc.hasRawPropertySet(propertyName);
 
             if (!result) {
@@ -141,33 +141,33 @@ ext.opc = [
             return result;
         },
 
-        hasRawPropertySet: { String propertyName ->
+        hasRawPropertySet                : { String propertyName ->
             boolean result = opc.getProperty(propertyName) != "";
             return result;
         },
 
-        capitalize: { String word -> return (word.length() == 0 ? "" : word.substring(0,1).toUpperCase() + (word.length() == 1 ? "" : word.substring(1)))
+        capitalize                       : { String word -> return (word.length() == 0 ? "" : word.substring(0, 1).toUpperCase() + (word.length() == 1 ? "" : word.substring(1)))
         },
 
-        isFeatureEnabled: { String featureName ->
+        isFeatureEnabled                 : { String featureName ->
             String propertyValue = opc.getProperty("uses" + opc.capitalize(featureName));
             boolean enabled = propertyValue.toLowerCase() == "true";
             return enabled;
         },
 
-        isFeatureDisabled: { String featureName ->
+        isFeatureDisabled                : { String featureName ->
             String propertyValue = opc.getProperty("uses" + opc.capitalize(featureName));
             boolean disabled = propertyValue.toLowerCase() == "false";
             return disabled;
         },
 
-        determineNextMajorVersion: { String v ->
+        determineNextMajorVersion        : { String v ->
             def components = v.split("\\.")
             def major = components[0].toInteger()
             return "${major + 1}.0.0".toString()
         },
 
-        buildSupportedVersionRange: { String v ->
+        buildSupportedVersionRange       : { String v ->
             def nextMajorComponent = opc.determineNextMajorVersion(v)
             return "[${v},${nextMajorComponent})".toString()
         }
@@ -199,7 +199,7 @@ apply plugin: 'java-library'
 
 def projectUsesShadowing = false
 if ((project.hasProperty("useShadowJar") && project.useShadowJar.toString().toLowerCase() == "true") ||
-        (project.hasProperty("shadowRenamedNamespaces") &&  !project.shadowRenamedNamespaces.trim().isEmpty())
+        (project.hasProperty("shadowRenamedNamespaces") && !project.shadowRenamedNamespaces.trim().isEmpty())
 ) {
     projectUsesShadowing = true
 }
@@ -261,7 +261,7 @@ static HashSet<String> newSet(String... members) {
 if (opc.isFeatureEnabled("GitInformation")) {
     ext.git = [
             repositry: new Object(),
-            branch: new Object()
+            branch   : new Object()
     ]
     ext.git.repository = org.ajoberstar.grgit.Grgit.open(currentDir: file('.'))
     ext.git.branch = git.repository.branch.getCurrent()
@@ -269,13 +269,19 @@ if (opc.isFeatureEnabled("GitInformation")) {
 
 group = project.modGroup
 
+def useMCVersionOrder = opc.isFeatureEnabled("MCVersionOrderFirst")
+
 def versionNumber = opc.hasPropertySet("modVersion") ? opc.getProperty("modVersion") : "0.0.1"
 def versionSuffix = opc.hasPropertySet("modVersionSuffix") ? opc.getProperty("modVersionSuffix") : "alpha"
 def versionString
 if (versionSuffix == "") {
-    versionString = versionNumber + "-" + project.exactMinecraftVersion
+    versionString = useMCVersionOrder
+            ? project.exactMinecraftVersion + "-" + versionNumber
+            : versionNumber + "-" + project.exactMinecraftVersion
 } else {
-    versionString = versionNumber + "-" + project.exactMinecraftVersion + versionSuffix
+    versionString = useMCVersionOrder
+            ? project.exactMinecraftVersion + "-" + versionNumber + versionSuffix
+            : versionNumber + "-" + project.exactMinecraftVersion + versionSuffix
 }
 
 if (opc.isFeatureEnabled("MCVersionBasedVersioning")
@@ -570,7 +576,7 @@ def librarySourceSets = new HashSet<String>()
 runtimeSourceSets.addAll(librarySourceSets);
 if (project.hasProperty("librarySourceSets")) {
     librarySourceSets.clear();
-    opc.getStringListProperty("librarySourceSets").each {String sourceSetName -> librarySourceSets.add(sourceSetName as String) }
+    opc.getStringListProperty("librarySourceSets").each { String sourceSetName -> librarySourceSets.add(sourceSetName as String) }
 }
 
 def libraryConfigs = new HashSet<org.gradle.api.artifacts.Configuration>();
@@ -599,7 +605,7 @@ runs {
         }
     }
 
-    server { }
+    server {}
 
     data {
         arguments.addAll '--mod', project.modId, '--all', '--output', file("src/datagen/generated/${project.modId}").getAbsolutePath(), '--existing', file('src/main/resources/').getAbsolutePath()
@@ -705,17 +711,17 @@ if (useDefaultTestSystem) {
             configurationName = "implementation"
         }
 
-        dependencies.add(configurationName,  "junit:junit:${jUnitVersion}");
-        dependencies.add(configurationName,  "org.mockito:mockito-core:${mockitoCoreVersion}");
+        dependencies.add(configurationName, "junit:junit:${jUnitVersion}");
+        dependencies.add(configurationName, "org.mockito:mockito-core:${mockitoCoreVersion}");
 
         if (!modernMockito) {
-            dependencies.add(configurationName,  "org.powermock:powermock-module-junit4:${powerMockModuleJUnit4Version}");
-            dependencies.add(configurationName,  "org.powermock:powermock-api-mockito2:${powerMockApiMockitoVersion}");
-            dependencies.add(configurationName,  "org.powermock:powermock-module-junit4-rule-agent:${powerMockModuleJUnit4RuleEngineVersion}");
+            dependencies.add(configurationName, "org.powermock:powermock-module-junit4:${powerMockModuleJUnit4Version}");
+            dependencies.add(configurationName, "org.powermock:powermock-api-mockito2:${powerMockApiMockitoVersion}");
+            dependencies.add(configurationName, "org.powermock:powermock-module-junit4-rule-agent:${powerMockModuleJUnit4RuleEngineVersion}");
         }
 
-        dependencies.add(configurationName,  "org.assertj:assertj-core:${assertJCoreVersion}");
-        dependencies.add(configurationName,  "org.hamcrest:hamcrest-all:${hamcrestAllVersion}");
+        dependencies.add(configurationName, "org.assertj:assertj-core:${assertJCoreVersion}");
+        dependencies.add(configurationName, "org.hamcrest:hamcrest-all:${hamcrestAllVersion}");
     })
 }
 
@@ -730,7 +736,7 @@ annotatedSourceSets.forEach(sourceSetName -> {
         configurationName = "implementation"
     }
 
-    dependencies.add(configurationName,  "org.jetbrains:annotations:${intelliJAnnotationsVersion}");
+    dependencies.add(configurationName, "org.jetbrains:annotations:${intelliJAnnotationsVersion}");
 })
 
 availableSourceSets.forEach(sourceSetName -> {
@@ -739,7 +745,7 @@ availableSourceSets.forEach(sourceSetName -> {
         configurationName = "implementation"
     }
 
-    dependencies.add(configurationName,  "net.neoforged:neoforge:${project.forgeVersion}");
+    dependencies.add(configurationName, "net.neoforged:neoforge:${project.forgeVersion}");
 })
 
 def primaryJarClassifier = ''
@@ -829,7 +835,7 @@ jar {
 
         if (isFMLLibrary) {
             attributes([
-                'FMLModType'          : "LIBRARY",
+                    'FMLModType': "LIBRARY",
             ])
         }
     }
@@ -893,9 +899,9 @@ tasks.named('sourcesJar', Jar.class, { Jar jar ->
     })
 })
 
-javadoc {it ->
+javadoc { it ->
     primaryJarSourceSets.forEach(sourceSetName -> {
-        it.source +=  project.sourceSets[sourceSetName].allJava
+        it.source += project.sourceSets[sourceSetName].allJava
     })
 }
 
@@ -934,7 +940,7 @@ if (projectUsesJarJar) {
 
 publishing {
     publications {
-        mavenJava(MavenPublication) {pub ->
+        mavenJava(MavenPublication) { pub ->
             from project.components.java
 
             suppressAllPomMetadataWarnings()
@@ -1069,13 +1075,13 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
 
         if (opc.hasPropertySet("requiredCurseDependencies") || opc.hasPropertySet("optionalCurseDependencies")) {
             if (opc.hasPropertySet("requiredCurseDependencies")) {
-                opc.getStringListProperty("requiredCurseDependencies").each {depId ->
+                opc.getStringListProperty("requiredCurseDependencies").each { depId ->
                     mainArtifact.addRequirement depId
                 }
             }
 
             if (opc.hasPropertySet("optionalCurseDependencies")) {
-                opc.getStringListProperty("optionalCurseDependencies").each {depId ->
+                opc.getStringListProperty("optionalCurseDependencies").each { depId ->
                     mainArtifact.addOptional depId
                 }
             }
@@ -1085,9 +1091,7 @@ if (opc.isFeatureEnabled("curse") && opc.hasPropertySet("curseId")
     }
 
     tasks.publish.dependsOn curseforge
-}
-else
-{
+} else {
     project.logger.lifecycle("Deactivating curse. Feature state: " + opc.isFeatureEnabled("curse") + " project id supplied: " + opc.hasPropertySet("curseId") + " api key supplied: " + (opc.hasPropertySet("curseApiKey") || opc.hasPropertySet("CURSEAPIKEY")) + " release type defined: " + (opc.hasPropertySet("curseReleaseType") || opc.hasPropertySet("CURSERELEASETYPE")))
 
     task("curseforge") {
@@ -1095,17 +1099,17 @@ else
     }
 }
 
-tasks.withType(org.gradle.api.tasks.Copy.class, {task ->
+tasks.withType(org.gradle.api.tasks.Copy.class, { task ->
     task.duplicatesStrategy 'exclude'
 })
 
-tasks.withType(org.gradle.api.tasks.javadoc.Javadoc.class, {task ->
+tasks.withType(org.gradle.api.tasks.javadoc.Javadoc.class, { task ->
     if (!task.name.toLowerCase().contains("api")) {
         task.options.addStringOption('Xdoclint:none', '-quiet')
     }
 })
 
-tasks.withType(Jar.class, {task ->
+tasks.withType(Jar.class, { task ->
     task.duplicatesStrategy 'exclude'
 })
 
@@ -1129,9 +1133,9 @@ if (opc.isFeatureEnabled("mergableTranslations") && opc.hasPropertySet("translat
     tasks.register("mergeTranslations") {
         def translationSourcesNames = opc.getStringListProperty("translationMergeSources");
         def translationTargetsNames = opc.getStringListProperty("translationMergeDestination");
-        
-        def translationSources = translationSourcesNames.collect {file(it)};
-        def translationTargets = translationTargetsNames.collect {file(it)};
+
+        def translationSources = translationSourcesNames.collect { file(it) };
+        def translationTargets = translationTargetsNames.collect { file(it) };
 
         doLast {
             if (translationSources.size() >= 1) {
@@ -1197,13 +1201,11 @@ if (opc.isFeatureEnabled("crowdInTranslationManagement") && opc.hasPropertySet("
         }
 
         def performsTranslationsBuild = false;
-        if (!opc.isFeatureEnabled("crowdInBuildingWithFilteredBranches") || (opc.hasPropertySet("crowdInBuildingWithFilteredBranchesSpec") && Pattern.matches(opc.getProperty("crowdInBuildingWithFilteredBranchesSpec"), git.branch.name)))
-        {
+        if (!opc.isFeatureEnabled("crowdInBuildingWithFilteredBranches") || (opc.hasPropertySet("crowdInBuildingWithFilteredBranchesSpec") && Pattern.matches(opc.getProperty("crowdInBuildingWithFilteredBranchesSpec"), git.branch.name))) {
             tasks.processResources.dependsOn crowdinBuildProjectTranslation
             performsTranslationsBuild = true;
         }
-        if (!opc.isFeatureEnabled("crowdInUploadWithFilteredBranches") || (opc.hasPropertySet("crowdInUploadWithFilteredBranchesSpec") && Pattern.matches(opc.getProperty("crowdInUploadWithFilteredBranchesSpec"), git.branch.name)))
-        {
+        if (!opc.isFeatureEnabled("crowdInUploadWithFilteredBranches") || (opc.hasPropertySet("crowdInUploadWithFilteredBranchesSpec") && Pattern.matches(opc.getProperty("crowdInUploadWithFilteredBranchesSpec"), git.branch.name))) {
             tasks.processResources.dependsOn crowdinUploadSourceFiles
             if (performsTranslationsBuild) {
                 tasks.crowdinBuildProjectTranslation.dependsOn crowdinUploadSourceFiles
@@ -1248,16 +1250,12 @@ if (opc.isFeatureEnabled("crowdInTranslationManagement") && opc.hasPropertySet("
         tasks.processResources.dependsOn normalizeTranslationFilesToRuntimeDir
         tasks.sourcesJar.dependsOn normalizeTranslationFilesToRuntimeDir
 
-    }
-    else
-    {
+    } else {
         project.afterEvaluate {
             project.logger.lifecycle "No CrowdIn API Key was provided. Can not sync translations!"
         }
     }
-}
-else
-{
+} else {
     project.logger.lifecycle "CrowdIn disabled."
 }
 
