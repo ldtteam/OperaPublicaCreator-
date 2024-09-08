@@ -1125,7 +1125,7 @@ tasks.register("outputChangelogHeader") {
 
 tasks.register("outputChangelogFooter") {
     def changelog = file("changelog.md")
-    def footer = opc.getProperty("outputChangelogFooter")
+    def footer = opc.getProperty("customChangelogFooter")
     doLast {
         changelog << footer
     }
