@@ -20,7 +20,7 @@ buildscript {
         classpath "net.neoforged.gradle:userdev:7.0.+"
         classpath "gradle.plugin.com.github.jengelman.gradle.plugins:shadow:7.0.0"
         classpath "de.undercouch:gradle-download-task:4.1.2"
-        classpath "org.zaproxy.gradle:gradle-plugin-crowdin:0.2.1"
+        classpath "org.zaproxy.gradle:gradle-plugin-crowdin:0.4.0"
         classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:3.3"
         classpath 'org.ajoberstar.grgit:grgit-gradle:5.+'
         classpath 'net.darkhax.curseforgegradle:CurseForgeGradle:1.1.25'
@@ -1095,58 +1095,6 @@ else
     }
 }
 
-if (project.hasProperty("usesCrowdin") && project.usesCrowdin.toString().toLowerCase() == "true" &&
-        System.getenv().containsKey("crowdinKey") && !project.gradle.startParameter.isOffline()) {
-    task downloadCrowdin() {
-        ext {
-            output = file('build/crowdin_raw.zip')
-            update = file('build/crowdin.json')
-            id = project.crowdinId
-        }
-        onlyIf {
-            System.getenv().containsKey("crowdinKey") && !project.gradle.startParameter.isOffline()
-        }
-        doLast {
-            download {
-                src "https://api.crowdin.com/api/project/${id}/export?key=${System.getenv("crowdinKey")}&json"
-                dest update
-                overwrite true
-            }
-            if (!update.text.contains('success')) {
-                throw new RuntimeException("Crowdin export failed, see ${update} for more info")
-            }
-            download {
-                src "https://api.crowdin.com/api/project/${id}/download/all.zip?key=${System.getenv("crowdinKey")}"
-                dest output
-                overwrite true
-            }
-        }
-    }
-
-    task crowdin(type: Zip) {
-        duplicatesStrategy = "include"
-        dependsOn downloadCrowdin
-        onlyIf {
-            !downloadCrowdin.state.skipped
-        }
-        baseName = project.name
-        version = project.version
-        archiveClassifier.set('crowdin')
-        destinationDir = file('build/distributions')
-        from(zipTree(downloadCrowdin.output)){
-            eachFile {
-                if (!it.path.startsWith('assets/')) {
-                    it.relativePath = new RelativePath(true, it.relativePath.segments.drop(4))
-                }
-            }
-            exclude { it.isDirectory() }
-            rename { it.toLowerCase() }
-        }
-    }
-
-    tasks.processResources.dependsOn crowdin
-}
-
 tasks.withType(org.gradle.api.tasks.Copy.class, {task ->
     task.duplicatesStrategy 'exclude'
 })
@@ -1171,7 +1119,7 @@ tasks.register("outputChangelogHeader") {
 
 tasks.register("outputChangelogFooter") {
     def changelog = file("changelog.md")
-    def footer = opc.getProperty("outputChangelogFooter")
+    def footer = opc.getProperty("customChangelogFooter")
     doLast {
         changelog << footer
     }
