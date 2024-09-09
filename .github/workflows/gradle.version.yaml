@@ -75,7 +75,8 @@ jobs:
       - id: generateFullVersion
         name: "Generate full version"
         run: |
-          if [ ${{ steps.getVersionOrdering.outputs.uses_mc_version_order_first }} == "true" ] then
+          if [ ${{ steps.getVersionOrdering.outputs.uses_mc_version_order_first }} == "true" ] 
+          then
             full_version="${{ steps.generateMinecraftVersion.outputs.minecraft_version }}-${{ steps.generateModVersion.outputs.version }}${{ inputs.suffix }}"
           else
             full_version="${{ steps.generateModVersion.outputs.version }}-${{ steps.generateMinecraftVersion.outputs.minecraft_version }}${{ inputs.suffix }}"
