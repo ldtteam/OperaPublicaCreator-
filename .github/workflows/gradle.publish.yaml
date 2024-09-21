@@ -94,6 +94,9 @@ jobs:
   gradle:
     needs: [ "compute-version" ]
     runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.ref }}
+      cancel-in-progress: true
     steps:
       - id: checkout
         name: "📦 Checkout"
