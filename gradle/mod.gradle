@@ -294,7 +294,7 @@ if (opc.isFeatureEnabled("MCVersionBasedVersioning")
 } else {
     version = versionString
 }
-archivesBaseName = project.modId
+archivesName = project.modId
 project.properties.file = [
         jarVersion: project.version
 ];
@@ -816,7 +816,7 @@ jar {
 
     manifest {
         attributes([
-                'Maven-Artifact'          : "${project.group}:${project.archivesBaseName}:${project.version}",
+                'Maven-Artifact'          : "${project.group}:${project.archivesName}:${project.version}",
                 "Specification-Title"     : project.modId,
                 "Specification-Vendor"    : "ldtteam",
                 "Specification-Version"   : "1", // We are version 1 of ourselves
