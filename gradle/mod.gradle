@@ -20,7 +20,7 @@ buildscript {
         classpath "net.minecraftforge.gradle:ForgeGradle:6.+"
         classpath "gradle.plugin.com.github.jengelman.gradle.plugins:shadow:7.0.0"
         classpath "de.undercouch:gradle-download-task:4.1.2"
-        classpath "org.zaproxy.gradle:gradle-plugin-crowdin:0.4.0"
+        classpath "org.zaproxy.gradle:gradle-plugin-crowdin:0.5.0"
         classpath "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:3.3"
         classpath 'org.parchmentmc:librarian:1.+'
         classpath 'org.ajoberstar.grgit:grgit-gradle:5.+'
