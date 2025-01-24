@@ -9,7 +9,7 @@ buildscript {
         mavenLocal()
         mavenCentral()
         maven {
-            url "https://plugins.gradle.org/m2/"
+            url = "https://plugins.gradle.org/m2/"
         }
         maven {
             name = 'ajoberstar-backup'
@@ -242,8 +242,8 @@ repositories {
     mavenLocal()
     mavenCentral()
     maven {
-        name 'LDTTeam - Modding'
-        url 'https://ldtteam.jfrog.io/ldtteam/modding/'
+        name = 'LDTTeam - Modding'
+        url = 'https://ldtteam.jfrog.io/ldtteam/modding/'
     }
     flatDir {
         dirs {
@@ -871,7 +871,7 @@ additionalSourceSetJars.forEach(additionalSourceSet -> {
 
     org.gradle.api.tasks.bundling.Jar sourcesJarTask = project.tasks.maybeCreate(additionalSourceSetSourcesTaskName, org.gradle.api.tasks.bundling.Jar.class)
     sourcesJarTask.group 'sources'
-    sourcesJarTask.duplicatesStrategy 'exclude'
+    sourcesJarTask.duplicatesStrategy = 'exclude'
     sourcesJarTask.from sourceSets[additionalSourceSet].allJava
 
     Task sourceSetBuildTask = project.tasks.maybeCreate(additionalSourceSetBuildTask)
@@ -886,7 +886,7 @@ additionalSourceSetJars.forEach(additionalSourceSet -> {
 
 tasks.named('sourcesJar', Jar.class, { Jar jar ->
     jar.archiveClassifier.set('sources')
-    jar.duplicatesStrategy 'exclude'
+    jar.duplicatesStrategy = 'exclude'
 
     primaryJarSourceSets.forEach(sourceSetName -> {
         jar.from project.sourceSets[sourceSetName].allSource
@@ -978,12 +978,12 @@ publishing {
     if (System.getenv().containsKey("LDTTeamJfrogUsername") && System.getenv().containsKey("LDTTeamJfrogPassword")) {
         repositories {
             maven {
-                name 'LDTTeamJfrog'
+                name = 'LDTTeamJfrog'
                 credentials {
                     username System.getenv().get("LDTTeamJfrogUsername")
                     password System.getenv().get("LDTTeamJfrogPassword")
                 }
-                url 'https://ldtteam.jfrog.io/ldtteam/mods-maven'
+                url = 'https://ldtteam.jfrog.io/ldtteam/mods-maven'
             }
         }
     }
@@ -991,20 +991,20 @@ publishing {
     if (opc.hasPropertySet("githubRepository") && opc.hasPropertySet("githubUsername") && opc.hasPropertySet("githubToken")) {
         repositories {
             maven {
-                name 'GitHubPackages'
+                name = 'GitHubPackages'
                 credentials {
                     username opc.getProperty("githubUsername")
                     password opc.getProperty("githubToken")
                 }
-                url "https://maven.pkg.github.com/${opc.getProperty("githubRepository")}"
+                url = "https://maven.pkg.github.com/${opc.getProperty("githubRepository")}"
             }
         }
     }
 
     repositories {
         maven {
-            name 'RepoDirectory'
-            url 'file://' + rootProject.file('repo').getAbsolutePath()
+            name = 'RepoDirectory'
+            url = 'file://' + rootProject.file('repo').getAbsolutePath()
         }
     }
 }
@@ -1096,7 +1096,7 @@ else
 }
 
 tasks.withType(org.gradle.api.tasks.Copy.class, {task ->
-    task.duplicatesStrategy 'exclude'
+    task.duplicatesStrategy = 'exclude'
 })
 
 tasks.withType(org.gradle.api.tasks.javadoc.Javadoc.class, {task ->
@@ -1106,7 +1106,7 @@ tasks.withType(org.gradle.api.tasks.javadoc.Javadoc.class, {task ->
 })
 
 tasks.withType(Jar.class, {task ->
-    task.duplicatesStrategy 'exclude'
+    task.duplicatesStrategy = 'exclude'
 })
 
 tasks.register("outputChangelogHeader") {
