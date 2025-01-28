@@ -46,6 +46,9 @@ jobs:
           fetch-depth: 1000
           fetch-tags: true
 
+      - name: Fetch tags # See https://github.com/actions/checkout/issues/2041
+        run: git fetch --tags
+
       - id: generateMinecraftVersion
         name: "Generate Minecraft version"
         run: |
