@@ -45,6 +45,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fetch tags # See https://github.com/actions/checkout/issues/2041
+        run: git fetch --tags
+
       - id: getVersionOrdering
         name: "Get version ordering"
         run: |
